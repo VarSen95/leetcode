@@ -11,60 +11,41 @@ class Solution(object):
     def findSubstring(self, s, words):
         if not s or not words:
             return []
-
+        
         word_len = len(words[0])
-        word_count = len(words)
-        total_len = word_len * word_count
+        word_count_need = Counter(words)
+        total_len = word_len * len(words)
 
-        if total_len > len(s):
+        if len(s) < total_len:
             return []
-
-        need = Counter(words)
-        res = []
-
-
-        # We try each possible starting offset modulo word_len
+        result = []
         for offset in range(word_len):
-            left = offset
+            left = offset 
             seen = defaultdict(int)
-            used = 0  # number of valid words currently in window
-            print(seen)
+            used = 0
 
-            # Move right in steps of word_len (word by word)
             for right in range(offset, len(s) - word_len + 1, word_len):
-                w = s[right:right + word_len]
+                word = s[right: right + word_len]
 
-                if w in need:
-                    seen[w] += 1
-                    used += 1
+                if word in word_count_need:
+                    seen[word] +=1
+                    used +=1
 
-                    # Too many of word w -> shrink from left until valid
-                    while seen[w] > need[w]:
+                    while seen[word] > word_count_need[word]:
                         left_word = s[left:left + word_len]
-                        seen[left_word] -= 1
+                        seen[left_word] -=1
+                        used -=1
                         left += word_len
-                        used -= 1
 
-                    # If we have exactly word_count words, record start
-                    if used == word_count:
-                        res.append(left)
-
-                        # Slide window forward by removing leftmost word
-                        left_word = s[left:left + word_len]
-                        seen[left_word] -= 1
+                    if used == len(words):
+                        result.append(left)
+                        left_word = s[left: left + word_len]
+                        seen[left_word] -=1
+                        used -=1
                         left += word_len
-                        used -= 1
-
                 else:
-                    # Reset window if word not in target list
                     seen.clear()
                     used = 0
                     left = right + word_len
 
-        return res
-
-
-
-        
-# @lc code=end
 
