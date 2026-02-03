@@ -1,0 +1,134 @@
+@startuml Banking System Class Diagram
+
+' Interfaces
+interface BankInterface {
+    +getAccount(Long): Account
+    +openCommercialAccount(Company, int, double): Long
+    +openConsumerAccount(Person, int, double): Long
+    +authenticateUser(Long, int): boolean
+    +getBalance(Long): double
+    +credit(Long, double): void
+    +debit(Long, double): boolean
+}
+
+interface TransactionInterface {
+    +getBalance(): double
+    +credit(double): void
+    +debit(double): boolean
+}
+
+' Abstract Classes
+abstract class AccountHolder {
+    -idNumber: int
+    +AccountHolder(int)
+    +getIdNumber(): int
+}
+
+abstract class Account {
+    -accountHolder: AccountHolder
+    -accountNumber: Long
+    -pin: int
+    -balance: double
+    +Account(AccountHolder, Long, int, double)
+    +getAccountHolder(): AccountHolder
+    +validatePin(int): boolean
+    +getBalance(): double
+    +getAccountNumber(): Long
+    +creditAccount(double): void
+    +debitAccount(double): boolean
+}
+
+' Concrete Classes
+class Bank {
+    -accounts: Map<Long, Account>
+    -{static} accountNumberGenerator: AtomicLong
+    +Bank()
+    +getAccount(Long): Account
+    +openCommercialAccount(Company, int, double): Long
+    +openConsumerAccount(Person, int, double): Long
+    +authenticateUser(Long, int): boolean
+    +getBalance(Long): double
+    +credit(Long, double): void
+    +debit(Long, double): boolean
+}
+
+class Person {
+    -firstName: String
+    -lastName: String
+    +Person(String, String, int)
+    +getFirstName(): String
+    +getLastName(): String
+}
+
+class Company {
+    -companyName: String
+    +Company(String, int)
+    +getCompanyName(): String
+}
+
+class ConsumerAccount {
+    +ConsumerAccount(Person, Long, int, double)
+}
+
+class CommercialAccount {
+    -authorizedUsers: List<Person>
+    +CommercialAccount(Company, Long, int, double)
+    +addAuthorizedUser(Person): void
+    +isAuthorizedUser(Person): boolean
+}
+
+class Transaction {
+    -bank: Bank
+    -accountNumber: Long
+    +Transaction(Bank, Long, int)
+    +getBalance(): double
+    +credit(double): void
+    +debit(double): boolean
+}
+
+' Relationships
+Bank ..|> BankInterface : implements
+Bank "1" *-- "0..*" Account : manages
+
+Person --|> AccountHolder : extends
+Company --|> AccountHolder : extends
+
+Account "1" o-- "1" AccountHolder : has
+
+ConsumerAccount --|> Account : extends
+CommercialAccount --|> Account : extends
+CommercialAccount "1" o-- "0..*" Person : authorizedUsers
+
+Transaction ..|> TransactionInterface : implements
+Transaction "1" --> "1" Bank : uses
+Transaction ..> Account : operates on
+
+' Notes
+note right of Bank
+  **Implementation:**
+  - Map<Long, Account> (ConcurrentHashMap)
+  - AtomicLong for account generation
+  - Account-level synchronization for balance updates
+  - In production, use a durable store + distributed ID generator
+end note
+
+note right of Account
+  **Thread-Safety:**
+  - Synchronized getBalance/credit/debit
+  - Safe for concurrent operations
+end note
+
+note right of AccountHolder
+  **Abstract Class:**
+  - Person and Company extend this
+  - Provides getIdNumber() method
+end note
+
+note right of Transaction
+  **Authentication:**
+  - attemptedPin used in constructor only
+  - Throws Exception if auth fails
+  - Not stored as field
+end note
+
+@enduml
