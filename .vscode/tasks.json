@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Java 8: Run Current File",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "java/selfpractice/run.sh '${file}'"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$javac"
+    },
+    {
+      "label": "Java: Format Current File",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "java/selfpractice/format.sh '${file}'"
+      ],
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
