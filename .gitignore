@@ -1,0 +1,6 @@
+# Java build output (self-practice)
+java/selfpractice/out/
+java/self-practice/out/
+
+# General Java artifacts
+*.class
