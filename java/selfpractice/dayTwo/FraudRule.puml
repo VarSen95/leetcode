@@ -1,0 +1,60 @@
+@startuml Banking System Class Diagram
+
+' Interfaces
+interface FraudRule {
+    +isFraudulent(Transaction transaction): boolean
+    +getRuleName(): String
+}
+
+' Concrete Class
+
+class AmountThresholdRule {
+    - threshold: double
+    + AmountThresholdRule(String threshold)
+    + isFraudulent(Transaction transaction): boolean
+    + getRuleName(): String
+}
+
+class VelocityRule {
+    - cardVelocities: Map<Integer, Integer>
+    + VelocityRule(String n, String m)
+    + isFraudulent(Transaction transaction): boolean
+    + getRuleName(): String
+}
+
+class BlockedCountryRule {
+    - blockedCountries: List<String>
+    + BlockedCountryRule(List<String> blockedCountries)
+    + isFraudulent(Transaction transaction): boolean
+    + getRuleName(): String
+}
+
+class FraudEngine {
+    - rules: List<FraudRule>
+    + addRule(FraudRule rule): void
+    + removeRule(FraudRule rule): void
+    + check(Transaction transaction): FraudCheckResult
+}
+
+class FraudCheckResult {
+    - isPassed: boolean
+    - failedRules: List<FraudRule>
+    + isPassed(): boolean
+    + getFailedRules(): List<FraudRule> 
+}
+
+class Transaction {
+    -id: String
+    -amount: String
+    -cardId: String
+    -country: String
+}
+' Relatoinships
+AmountThresholdRule ..|> FraudRule : implements
+VelocityRule ..|> FraudRule : implements
+BlockedCountryRule ..|> FraudRule: implements
+FraudEngine "1" o-- "*" FraudRule : uses
+FraudEngine ..> Transaction : checks
+FraudEngine ..> FraudCheckResult : returns
+
+@enduml

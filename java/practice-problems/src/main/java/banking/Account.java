@@ -19,12 +19,14 @@ public abstract class Account implements AccountInterface {
     private Long accountNumber;
     private int pin;
     private double balance;
+    private Currency currency;
 
-    protected Account(AccountHolder accountHolder, Long accountNumber, int pin, double startingDeposit) {
+    protected Account(AccountHolder accountHolder, Long accountNumber, int pin, double startingDeposit, Currency currency) {
         this.accountHolder = accountHolder;
         this.accountNumber = accountNumber;
         this.pin = pin;
         this.balance = startingDeposit;
+        this.currency = currency;
     }
 
     public AccountHolder getAccountHolder() {
@@ -55,5 +57,9 @@ public abstract class Account implements AccountInterface {
             return true;
         }
         return false;
+    }
+
+    public Currency getCurrency() {
+        return this.currency;
     }
 }

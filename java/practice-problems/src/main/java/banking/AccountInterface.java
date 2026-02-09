@@ -36,4 +36,6 @@ public interface AccountInterface {
      * @return true if amount could be withdrawn; otherwise, return false.
      */
     boolean debitAccount(double amount);
+
+    Currency getCurrency();
 }

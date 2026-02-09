@@ -7,11 +7,12 @@ public interface BankInterface {
 
     /**
      * Retrieves the account with the specified account number.
+     * 
      * @param accountNumber The account number.
      * @return The account for the given account number.
      */
     Account getAccount(Long accountNumber);
-    
+
     /**
      * Creates a new account and adds it to {@link Bank#accounts}.
      *
@@ -20,7 +21,7 @@ public interface BankInterface {
      * @param startingDeposit
      * @return The account number for the newly created account.
      */
-    Long openCommercialAccount(Company company, int pin, double startingDeposit);
+    Long openCommercialAccount(Company company, int pin, double startingDeposit, Currency currency);
 
     /**
      * Creates a new account and adds it to {@link Bank#accounts}.
@@ -30,7 +31,7 @@ public interface BankInterface {
      * @param startingDeposit
      * @return The account number for the newly created account.
      */
-    Long openConsumerAccount(Person person, int pin, double startingDeposit);
+    Long openConsumerAccount(Person person, int pin, double startingDeposit, Currency currency);
 
     /**
      * @param accountNumber The account number for the transaction.

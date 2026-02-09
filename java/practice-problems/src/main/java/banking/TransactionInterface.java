@@ -25,4 +25,6 @@ public interface TransactionInterface {
      * @return true if successful, false if insufficient funds
      */
     boolean debit(double amount);
+
+    long getTimestamp();
 }

@@ -309,7 +309,7 @@ public class Solution {
             // Synchronize on the same timestamps object as countInWindow
             synchronized (timestamps) {
                 // Increment count for this timestamp (handles duplicates)
-                timestamps.merge(epochMilli, 1, Integer::sum);
+                timestamps.merge(epochMilli, 1, Integer::sum); // FOLLOW UP: O(logn)
             }
             
             // Update oldest timestamp tracking (atomic operation on volatile field)

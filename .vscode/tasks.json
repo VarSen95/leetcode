@@ -7,7 +7,7 @@
       "command": "bash",
       "args": [
         "-lc",
-        "java/selfpractice/run.sh '${file}'"
+        "'${fileDirname}/run.sh' '${file}'"
       ],
       "group": {
         "kind": "build",
@@ -25,7 +25,7 @@
       "command": "bash",
       "args": [
         "-lc",
-        "java/selfpractice/format.sh '${file}'"
+        "'${fileDirname}/format.sh' '${file}'"
       ],
       "group": "none",
       "presentation": {
