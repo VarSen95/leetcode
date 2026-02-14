@@ -403,7 +403,14 @@ public class Solution {
                 }
             }
             // Remove empty card entries using removeIf (ConcurrentHashMap supports this)
-            cardTimestamps.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+            // FOLLOWUP: Remove also the locks from the locks structure
+            cardTimestamps.entrySet().removeIf(entry -> {
+                if (entry.getValue().isEmpty()) {
+                    lock.remove(entry.getKey());
+                    return true;
+                }
+                return false;
+            });
 
             oldestTimestampMillis.set(newOldest);
         }
@@ -412,7 +419,7 @@ public class Solution {
         public Instant getOldestTimestamp() {
             long v = oldestTimestampMillis.get();
             // FOLLOW UP: handle the case when oldestTimestampMillis is still MAX_VALUE
-            return v == Long.MAX_VALUE ? null: Instant.ofEpochMilli(v);
+            return v == Long.MAX_VALUE ? null : Instant.ofEpochMilli(v);
         }
     }
 
