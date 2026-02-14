@@ -173,7 +173,7 @@ public class Solution {
          * Validates duration to ensure valid time windows.
          */
         private void validateDuration(Duration duration) {
-            if (duration == null || duration.isNegative()) {
+            if (duration == null || duration.isNegative() || duration.isZero()) {
                 throw new IllegalArgumentException("Duration must be positive");
             }
         }
@@ -302,12 +302,11 @@ public class Solution {
         private final ConcurrentHashMap<String, TreeMap<Long, Integer>> cardTimestamps;
         private final ConcurrentHashMap<String, ReadWriteLock> lock;
         // FOLLOW UP: make the type AtomicLong
-        private AtomicLong oldestTimestampMillis;
+        private final AtomicLong oldestTimestampMillis = new AtomicLong(Long.MAX_VALUE);
 
         public TreeMapTimestampStorage() {
             this.cardTimestamps = new java.util.concurrent.ConcurrentHashMap<>();
             this.lock = new java.util.concurrent.ConcurrentHashMap<>();
-            this.oldestTimestampMillis = new AtomicLong(Long.MAX_VALUE);
         }
 
         @Override
@@ -432,11 +431,10 @@ public class Solution {
      */
     static class SkipListTimestampStorage implements TimestampStorage {
         private final Map<String, java.util.concurrent.ConcurrentSkipListMap<Long, Integer>> cardTimestamps;
-        private final java.util.concurrent.atomic.AtomicLong oldestTimestampMillis;
+        private final AtomicLong oldestTimestampMillis = new AtomicLong(Long.MAX_VALUE);
 
         public SkipListTimestampStorage() {
             this.cardTimestamps = new java.util.concurrent.ConcurrentHashMap<>();
-            this.oldestTimestampMillis = new java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis());
         }
 
         @Override
