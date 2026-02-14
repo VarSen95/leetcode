@@ -2,5 +2,9 @@
 java/selfpractice/**/out/
 java/self-practice/out/
 
+# Maven build output
+java/practice-problems/out/
+java/practice-problems/target/
+java/practice-problems/.m2-local
 # General Java artifacts
 *.class

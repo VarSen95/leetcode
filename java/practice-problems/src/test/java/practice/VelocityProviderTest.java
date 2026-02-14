@@ -1,6 +1,9 @@
 package practice;
 
 import org.junit.jupiter.api.Test;
+
+import practice.Solution.VelocityProvider;
+
 import org.junit.jupiter.api.BeforeEach;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -10,16 +13,16 @@ import java.util.UUID;
 
 public class VelocityProviderTest {
     
-    private Solution.VelocityProvider provider;
+    private VelocityProvider provider;
     
     @BeforeEach
     public void setUp() {
-        provider = Solution.VelocityProvider.getProvider();
+        provider = VelocityProvider.getProvider();
     }
     
     @Test
     public void testNoPaymentsRegistered() {
-        Solution.Payment payment = new Solution.Payment(
+        Payment payment = new Payment(
             UUID.randomUUID().toString(),
             Instant.now(),
             "card123"
@@ -35,7 +38,7 @@ public class VelocityProviderTest {
         String cardHash = "card123";
         
         // Register a payment
-        Solution.Payment payment1 = new Solution.Payment(
+        Payment payment1 = new Payment(
             UUID.randomUUID().toString(),
             now,
             cardHash
@@ -43,7 +46,7 @@ public class VelocityProviderTest {
         provider.registerPayment(payment1);
         
         // Query 5 minutes later with 10 minute window
-        Solution.Payment queryPayment = new Solution.Payment(
+        Payment queryPayment = new Payment(
             UUID.randomUUID().toString(),
             now.plus(Duration.ofMinutes(5)),
             cardHash
@@ -60,7 +63,7 @@ public class VelocityProviderTest {
         
         // Register 5 payments over 8 minutes
         for (int i = 0; i < 5; i++) {
-            Solution.Payment payment = new Solution.Payment(
+            Payment payment = new Payment(
                 UUID.randomUUID().toString(),
                 baseTime.plus(Duration.ofMinutes(i * 2)),
                 cardHash
@@ -69,7 +72,7 @@ public class VelocityProviderTest {
         }
         
         // Query at 10 minutes with 10 minute window - should see all 5
-        Solution.Payment queryPayment = new Solution.Payment(
+        Payment queryPayment = new Payment(
             UUID.randomUUID().toString(),
             baseTime.plus(Duration.ofMinutes(10)),
             cardHash
@@ -85,7 +88,7 @@ public class VelocityProviderTest {
         String cardHash = "card789";
         
         // Register payment at time 0
-        Solution.Payment payment1 = new Solution.Payment(
+        Payment payment1 = new Payment(
             UUID.randomUUID().toString(),
             baseTime,
             cardHash
@@ -93,7 +96,7 @@ public class VelocityProviderTest {
         provider.registerPayment(payment1);
         
         // Query 15 minutes later with 10 minute window - should not see old payment
-        Solution.Payment queryPayment = new Solution.Payment(
+        Payment queryPayment = new Payment(
             UUID.randomUUID().toString(),
             baseTime.plus(Duration.ofMinutes(15)),
             cardHash
@@ -111,7 +114,7 @@ public class VelocityProviderTest {
         // Register payments at 0, 5, 15, 20 minutes
         int[] minuteOffsets = {0, 5, 15, 20};
         for (int offset : minuteOffsets) {
-            Solution.Payment payment = new Solution.Payment(
+            Payment payment = new Payment(
                 UUID.randomUUID().toString(),
                 baseTime.plus(Duration.ofMinutes(offset)),
                 cardHash
@@ -120,7 +123,7 @@ public class VelocityProviderTest {
         }
         
         // Query at 18 minutes with 10 minute window - should see payments at 15 only
-        Solution.Payment queryPayment = new Solution.Payment(
+        Payment queryPayment = new Payment(
             UUID.randomUUID().toString(),
             baseTime.plus(Duration.ofMinutes(18)),
             cardHash
@@ -135,14 +138,14 @@ public class VelocityProviderTest {
         Instant now = Instant.now();
         
         // Register payments for different cards
-        Solution.Payment payment1 = new Solution.Payment(
+        Payment payment1 = new Payment(
             UUID.randomUUID().toString(),
             now,
             "card001"
         );
         provider.registerPayment(payment1);
         
-        Solution.Payment payment2 = new Solution.Payment(
+        Payment payment2 = new Payment(
             UUID.randomUUID().toString(),
             now,
             "card002"
@@ -150,7 +153,7 @@ public class VelocityProviderTest {
         provider.registerPayment(payment2);
         
         // Query for card001 - should only see its own payment
-        Solution.Payment queryPayment = new Solution.Payment(
+        Payment queryPayment = new Payment(
             UUID.randomUUID().toString(),
             now.plus(Duration.ofMinutes(1)),
             "card001"
@@ -166,7 +169,7 @@ public class VelocityProviderTest {
         String cardHash = "cardEdge";
         
         // Register payment at time 0
-        Solution.Payment payment1 = new Solution.Payment(
+        Payment payment1 = new Payment(
             UUID.randomUUID().toString(),
             baseTime,
             cardHash
@@ -174,7 +177,7 @@ public class VelocityProviderTest {
         provider.registerPayment(payment1);
         
         // Query exactly 10 minutes later with 10 minute window
-        Solution.Payment queryPayment = new Solution.Payment(
+        Payment queryPayment = new Payment(
             UUID.randomUUID().toString(),
             baseTime.plus(Duration.ofMinutes(10)),
             cardHash
@@ -182,5 +185,63 @@ public class VelocityProviderTest {
         
         int count = provider.getCardUsageCount(queryPayment, Duration.ofMinutes(10));
         assertEquals(1, count, "Payment at exact window boundary should be included");
+    }
+
+    @Test
+    public void testRuleEngineAllowsWhenUnderVelocityThreshold() {
+        Instant baseTime = Instant.now();
+        String cardHash = "cardAllow";
+
+        // Register 5 payments within the past hour (threshold is >5, so 5 is allowed)
+        for (int i = 0; i < 5; i++) {
+            Payment payment = new Payment(
+                UUID.randomUUID().toString(),
+                baseTime.minus(Duration.ofMinutes(55 - i * 10)), // spread across the hour
+                cardHash
+            );
+            provider.registerPayment(payment);
+        }
+
+        FraudRulesCheckEngine engine = FraudRulesCheckEngine.builder()
+            .addRule(new VelocityBasedFraudRule(provider))
+            .build();
+
+        Payment newPayment = new Payment(
+            UUID.randomUUID().toString(),
+            baseTime,
+            cardHash
+        );
+
+        RuleCheckResult result = engine.checkRules(newPayment);
+        assertTrue(result.isAllowed(), "Should allow payment when velocity is at or under threshold");
+    }
+
+    @Test
+    public void testRuleEngineBlocksWhenVelocityExceeded() {
+        Instant baseTime = Instant.now();
+        String cardHash = "cardBlock";
+
+        // Register 6 payments within the last hour to exceed the >5 threshold
+        for (int i = 0; i < 6; i++) {
+            Payment payment = new Payment(
+                UUID.randomUUID().toString(),
+                baseTime.minus(Duration.ofMinutes(50 - i * 5)),
+                cardHash
+            );
+            provider.registerPayment(payment);
+        }
+
+        FraudRulesCheckEngine engine = FraudRulesCheckEngine.builder()
+            .addRule(new VelocityBasedFraudRule(provider))
+            .build();
+
+        Payment newPayment = new Payment(
+            UUID.randomUUID().toString(),
+            baseTime,
+            cardHash
+        );
+
+        RuleCheckResult result = engine.checkRules(newPayment);
+        assertFalse(result.isAllowed(), "Should block payment when velocity threshold is exceeded");
     }
 }

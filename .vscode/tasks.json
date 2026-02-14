@@ -20,6 +20,35 @@
       "problemMatcher": "$javac"
     },
     {
+      "label": "Practice Tests: All",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd '${workspaceFolder}' && bash java/practice-problems/src/test/java/practice/run.sh"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Practice Tests: Current File",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd '${workspaceFolder}' && bash java/practice-problems/src/test/java/practice/run.sh '${file}'"
+      ],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Java: Format Current File",
       "type": "shell",
       "command": "bash",

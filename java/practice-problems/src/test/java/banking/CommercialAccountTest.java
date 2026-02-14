@@ -9,7 +9,7 @@ public class CommercialAccountTest {
     @Test
     public void testAuthorizedUsers() {
         Company company = new Company("Globex", 707);
-        CommercialAccount account = new CommercialAccount(company, 3L, 7777, 1000.0);
+        CommercialAccount account = new CommercialAccount(company, 3L, 7777, 1000.0, Currency.USD);
 
         Person user = new Person("Elon", "Musk", 808);
 

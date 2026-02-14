@@ -9,7 +9,7 @@ public class AccountTest {
     @Test
     public void testValidatePinAndBalanceOperations() {
         Person owner = new Person("Katherine", "Johnson", 505);
-        Account account = new ConsumerAccount(owner, 1L, 4321, 25.0);
+        Account account = new ConsumerAccount(owner, 1L, 4321, 25.0, Currency.USD);
 
         assertTrue(account.validatePin(4321));
         assertFalse(account.validatePin(1111));
@@ -30,7 +30,7 @@ public class AccountTest {
     @Test
     public void testGetAccountHolder() {
         Person owner = new Person("Mary", "Jackson", 606);
-        Account account = new ConsumerAccount(owner, 2L, 5555, 0.0);
+        Account account = new ConsumerAccount(owner, 2L, 5555, 0.0, Currency.USD);
 
         assertSame(owner, account.getAccountHolder());
     }

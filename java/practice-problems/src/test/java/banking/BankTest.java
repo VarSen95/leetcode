@@ -6,12 +6,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class BankTest {
 
+    private Bank newBank() {
+        return new Bank(new InMemoryExchangeRateService());
+    }
+
     @Test
     public void testOpenAccountsAndAuthenticate() {
-        Bank bank = new Bank();
+        Bank bank = newBank();
 
-        Long consumerAccount = bank.openConsumerAccount(new Person("Ada", "Lovelace", 101), 1234, 50.0);
-        Long commercialAccount = bank.openCommercialAccount(new Company("Acme", 202), 9999, 500.0);
+        Long consumerAccount = bank.openConsumerAccount(new Person("Ada", "Lovelace", 101), 1234, 50.0, Currency.USD);
+        Long commercialAccount = bank.openCommercialAccount(new Company("Acme", 202), 9999, 500.0, Currency.USD);
 
         assertNotNull(consumerAccount);
         assertNotNull(commercialAccount);
@@ -24,8 +28,8 @@ public class BankTest {
 
     @Test
     public void testGetBalanceCreditDebit() {
-        Bank bank = new Bank();
-        Long accountNumber = bank.openConsumerAccount(new Person("Grace", "Hopper", 303), 2468, 100.0);
+        Bank bank = newBank();
+        Long accountNumber = bank.openConsumerAccount(new Person("Grace", "Hopper", 303), 2468, 100.0, Currency.USD);
 
         assertEquals(100.0, bank.getBalance(accountNumber), 0.0001);
 
@@ -39,8 +43,8 @@ public class BankTest {
 
     @Test
     public void testDebitInsufficientFunds() {
-        Bank bank = new Bank();
-        Long accountNumber = bank.openConsumerAccount(new Person("Alan", "Turing", 404), 1357, 10.0);
+        Bank bank = newBank();
+        Long accountNumber = bank.openConsumerAccount(new Person("Alan", "Turing", 404), 1357, 10.0, Currency.USD);
 
         boolean debited = bank.debit(accountNumber, 50.0);
         assertFalse(debited);
@@ -49,12 +53,12 @@ public class BankTest {
 
     @Test
     public void testMissingAccountBehavior() {
-        Bank bank = new Bank();
+        Bank bank = newBank();
         Long missing = 999999999L;
 
         assertFalse(bank.authenticateUser(missing, 1234));
-        assertEquals(-1.0, bank.getBalance(missing), 0.0001);
-        assertFalse(bank.debit(missing, 10.0));
-        bank.credit(missing, 10.0); // should be no-op
+        assertThrows(AccountNotFoundException.class, () -> bank.getBalance(missing));
+        assertThrows(AccountNotFoundException.class, () -> bank.debit(missing, 10.0));
+        assertThrows(AccountNotFoundException.class, () -> bank.credit(missing, 10.0));
     }
 }

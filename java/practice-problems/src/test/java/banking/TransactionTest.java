@@ -8,8 +8,8 @@ public class TransactionTest {
 
     @Test
     public void testTransactionWithValidPin() throws Exception {
-        Bank bank = new Bank();
-        Long accountNumber = bank.openConsumerAccount(new Person("Ada", "Byron", 909), 2468, 200.0);
+        Bank bank = new Bank(new InMemoryExchangeRateService());
+        Long accountNumber = bank.openConsumerAccount(new Person("Ada", "Byron", 909), 2468, 200.0, Currency.USD);
 
         Transaction txn = new Transaction(bank, accountNumber, 2468);
         assertEquals(200.0, txn.getBalance(), 0.0001);
@@ -23,8 +23,8 @@ public class TransactionTest {
 
     @Test
     public void testTransactionWithInvalidPin() {
-        Bank bank = new Bank();
-        Long accountNumber = bank.openConsumerAccount(new Person("Ada", "Byron", 910), 2468, 200.0);
+        Bank bank = new Bank(new InMemoryExchangeRateService());
+        Long accountNumber = bank.openConsumerAccount(new Person("Ada", "Byron", 910), 2468, 200.0, Currency.USD);
 
         assertThrows(Exception.class, () -> new Transaction(bank, accountNumber, 1111));
     }
