@@ -372,11 +372,11 @@ public class Solution {
         public synchronized void removeOlderThan(Instant cutoffTime) {
             long cutoffMillis = cutoffTime.toEpochMilli();
 
-            if (oldestTimestampMillis > cutoffMillis) {
+            if (oldestTimestampMillis.get() > cutoffMillis) {
                 return; // No data old enough to clean
             }
 
-            Long newOldest = System.currentTimeMillis();
+            Long newOldest = Long.MAX_VALUE;
 
             // Clean old timestamps from each card's TreeMap
             for (Map.Entry<String, TreeMap<Long, Integer>> entry : cardTimestamps.entrySet()) {
@@ -405,12 +405,14 @@ public class Solution {
             // Remove empty card entries using removeIf (ConcurrentHashMap supports this)
             cardTimestamps.entrySet().removeIf(entry -> entry.getValue().isEmpty());
 
-            oldestTimestampMillis = newOldest;
+            oldestTimestampMillis.set(newOldest);
         }
 
         @Override
         public Instant getOldestTimestamp() {
-            return Instant.ofEpochMilli(oldestTimestampMillis);
+            long v = oldestTimestampMillis.get();
+            // FOLLOW UP: handle the case when oldestTimestampMillis is still MAX_VALUE
+            return v == Long.MAX_VALUE ? null: Instant.ofEpochMilli(v);
         }
     }
 
