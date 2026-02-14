@@ -3,6 +3,7 @@ package practice;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -300,12 +301,13 @@ public class Solution {
         // TreeMap<epochMilli, count> allows duplicate timestamps with proper counting
         private final ConcurrentHashMap<String, TreeMap<Long, Integer>> cardTimestamps;
         private final ConcurrentHashMap<String, ReadWriteLock> lock;
-        private volatile Long oldestTimestampMillis;
+        // FOLLOW UP: make the type AtomicLong
+        private AtomicLong oldestTimestampMillis;
 
         public TreeMapTimestampStorage() {
             this.cardTimestamps = new java.util.concurrent.ConcurrentHashMap<>();
             this.lock = new java.util.concurrent.ConcurrentHashMap<>();
-            this.oldestTimestampMillis = System.currentTimeMillis();
+            this.oldestTimestampMillis = new AtomicLong(Long.MAX_VALUE);
         }
 
         @Override
@@ -327,10 +329,14 @@ public class Solution {
                 writeLock.writeLock().unlock();
             }
 
-            // Update oldest timestamp tracking (atomic operation on volatile field)
-            if (timestampToAddInEpochMilli < oldestTimestampMillis) {
-                oldestTimestampMillis = timestampToAddInEpochMilli;
-            }
+            // reads value atomically, applies the operation using compare and set. If
+            // another thread has changed in between, it retries.
+            // returns the updated value
+
+            // It atomically updates the value to the minimum of the current value and the
+            // new timestamp. It prevents race conditions that would occur with a simple
+            // volatile check-then-set.
+            this.oldestTimestampMillis.accumulateAndGet(timestampToAddInEpochMilli, Math::min);
         }
 
         @Override
