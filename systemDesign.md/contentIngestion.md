@@ -488,3 +488,121 @@ type Query {
 - Three stores means three things to maintain, but each is optimized for its purpose
 - GraphQL is powerful but harder to cache than REST
 - Neo4j vs PostgreSQL graph — depends on query complexity and team expertise
+
+---
+
+## 8. Why Kafka Over SQS (Message Queue Comparison)
+
+*If asked "why Kafka and not a simpler message queue?"*
+
+### SQS (Simple Queue Service)
+- **Asynchronous message queue** — producer drops message, consumer picks it up later
+- Message is **deleted after consumption** — can't re-read it
+- One consumer per message (unless you use SNS fan-out to multiple SQS queues)
+- **DLQ (Dead Letter Queue)** catches messages that fail processing after X retries
+- DLQ only catches failures that threw exceptions — not bad output or missed events
+
+### Kafka (Event Streaming)
+- **Event log** — messages are retained for days/weeks, not deleted after consumption
+- **Multiple consumer groups** read the same topic independently — no fan-out needed
+- **Replay** — any consumer can rewind and re-read from any point in time
+- Native partition-based ordering
+
+### Side-by-Side Comparison
+
+| | SQS | Kafka |
+|--|-----|-------|
+| Message lifetime | Deleted after consumer reads | Retained for configurable period |
+| Multiple consumers | Need SNS + N separate SQS queues | One topic, add consumer groups freely |
+| Replay | No — once consumed, it's gone | Yes — rewind to any offset |
+| Ordering | FIFO SQS (limited) | Native partition-based |
+| Recovery from bad deploy | Need separate re-drive system | Just reset consumer offset |
+| Best for | Simple task processing, job queues | Event streaming, multiple consumers |
+
+### The Key Insight: Replay Eliminates Re-drive
+
+With SQS, if your processor had a bug and processed 5000 documents with wrong formatting:
+- DLQ only has messages that **threw exceptions**
+- The 5000 that "succeeded" with bad output? **Gone forever**
+- You need to build a **separate re-drive system** to reprocess everything
+
+With Kafka:
+- Reset the consumer offset to before the bad deployment
+- Reprocess all 5000 messages — **no re-drive needed**
+
+### Interview Answer
+
+> "I'd use Kafka over SQS because this system needs multiple independent consumers — one for search indexing, one for the knowledge graph, one for quality checks. With Kafka, each consumer group reads the same topic independently. With SQS, I'd need SNS fan-out to multiple queues. Kafka also gives me replay — if a consumer has a bug, I can rewind and reprocess without building a separate recovery pipeline."
+
+---
+
+## 9. Recovery & Re-drive Strategy
+
+*Every production system needs a recovery story.*
+
+### Why You Need Recovery (Even with Kafka)
+
+Kafka replay handles most failures, but not all:
+- **Source never published the event** — content changed but no event was fired
+- **Schema change** — old events have wrong format, need full reprocessing
+- **Initial backfill** — when you first launch, no events exist for existing content
+
+### Recovery Approaches
+
+#### Approach 1: Periodic Full Re-sync (Daily Cron)
+```
+Scheduler (daily) → List all content from sources → Compare with stored content → Reprocess differences
+```
+- Simple, reliable, catches everything
+- Expensive if content is large
+- This is what AZA used at Amazon (Re-drive scheduler + Lambda)
+
+#### Approach 2: Kafka Offset Reset (On-demand)
+```
+Detect issue → Reset consumer group offset → Reprocess from specific timestamp
+```
+- Fast, no extra infrastructure
+- Only works if events exist in Kafka (within retention period)
+
+#### Approach 3: Hybrid (Recommended)
+```
+Normal flow: Kafka consumers process events in real-time
+Recovery: Daily reconciliation job compares source-of-truth with stored content
+On-demand: Kafka offset reset for recent processing failures
+```
+
+### Interview Answer
+
+> "For recovery, I'd use a hybrid approach. Real-time processing through Kafka consumers, a daily reconciliation job that compares source content with what's stored to catch any missed events, and Kafka offset reset for quick recovery from recent processing bugs. At Amazon, I built a similar re-drive system for our content ingestion pipeline — a daily scheduled job that listed all content from the source of truth and reprocessed it. With Kafka's replay capability, the recovery system is simpler since most failures can be handled by just resetting the consumer offset."
+
+---
+
+## 10. Your Amazon AZA Experience — Mapped to Adyen
+
+*This is your secret weapon — you've built exactly this before.*
+
+### What AZA Was
+An AI-powered assistant (using AmazonQ) for Amazon employees, ingesting content from 6 different sources into a unified searchable system.
+
+### Architecture Mapping
+
+| AZA (Amazon) | Adyen Documentation Platform |
+|---|---|
+| ContentBus (central S3 hub) | Headless CMS + Git repos |
+| EventBridge + SQS | Kafka |
+| Content Processor Lambda (Kotlin) | Transformation Service (Java) |
+| AZA S3 buckets (formatted output) | PostgreSQL / Knowledge Graph |
+| AmazonQ Native Retriever | ElasticSearch / API layer |
+| Metadata filtering (country, LDAP groups) | Content access control |
+| Re-drive scheduler + Lambda (daily resync) | Recovery/reconciliation pipeline |
+| Multiple content domains (Inside, Learn, IT, Curio, Ivy, Benefits) | Multiple sources (CMS, Git, OpenAPI specs) |
+
+### What You Did
+- Built the **transformation layer** — each content domain (Inside, Learn, IT, Curio, Ivy) had different formats and metadata. The Content Processor Lambda normalized everything into a unified AZA format.
+- Designed **metadata-based access control** — each document had ACLs (LDAP/POSIX groups, country filters, entitlements) so employees only saw content they were authorized to view.
+- Built the **re-drive system** — a daily scheduled job that re-synced all content from ContentBus to AZA S3, recovering from any transient failures.
+- Used **Strategy pattern** — different ContentManagers for each content domain (IvyHelpCenterContentManager, CurioContentManager, etc.) behind a common interface.
+
+### Your Interview Pitch
+
+> "At Amazon, I worked on a content ingestion pipeline for AZA, an AI assistant powered by AmazonQ. We unified content from 6 different sources — CMS platforms, DynamoDB, S3 buckets — into a single format. I built the transformation layer that cleaned, structured, and applied access control metadata per document. The system used event-driven processing with SQS and Lambda, with a daily re-drive for recovery from transient failures. This maps directly to what this role requires — ingesting documentation from multiple sources, transforming it into a unified model, and making it accessible through APIs. The main difference is I'd use Kafka instead of SQS for replay capability and native multi-consumer support, and a knowledge graph for content relationships instead of flat S3 storage."

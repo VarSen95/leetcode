@@ -1,0 +1,2089 @@
+commit a8e8f372bd67afef686d01228624299d62da31e4
+Author: Varsha <vssengup@amazon.com>
+Date:   Tue Feb 3 23:07:01 2026 +0000
+
+    Add some practice problems in Java
+
+diff --git a/inbox/20.valid-parentheses.py b/inbox/20.valid-parentheses.py
+new file mode 100644
+index 0000000..2c53a0f
+--- /dev/null
++++ b/inbox/20.valid-parentheses.py
+@@ -0,0 +1,31 @@
++#
++# @lc app=leetcode id=20 lang=python
++#
++# [20] Valid Parentheses
++#
++
++# @lc code=start
++class Solution(object):
++    def isValid(self, s):
++        """
++        :type s: str
++        :rtype: bool
++        """
++        dict = {
++            ')': '(',
++            ']': '[',
++            '}': '{'
++        }
++        stack = []
++        for c in s:
++            if c in dict:
++                if not stack or stack[-1] != dict[c]:
++                    return False
++                stack.pop()
++            else:
++                stack.append(c)
++        return not stack
++
++
++# @lc code=end
++
+diff --git a/java/20.valid-parentheses.java b/java/20.valid-parentheses.java
+new file mode 100644
+index 0000000..2850415
+--- /dev/null
++++ b/java/20.valid-parentheses.java
+@@ -0,0 +1,28 @@
++import java.util.ArrayDeque;
++import java.util.Deque;
++import java.util.HashMap;
++import java.util.Map;
++
++class Solution {
++    public boolean isValid(String s) {
++        Map<Character, Character> map = new HashMap<>();
++        map.put('}', '{');
++        map.put(']', '[');
++        map.put(')', '(');
++
++        Deque<Character> stack = new ArrayDeque<>();
++        for (int i = 0; i< s.length(); i++) {
++            char ch = s.charAt(i);
++            if (map.containsKey(ch)) {
++                if (stack.isEmpty() || stack.peek() != map.get(ch)) {
++                    return false;
++                }
++                stack.pop();
++            } else {
++                stack.push(ch);
++            }
++        }
++
++        return stack.isEmpty();
++
++}
+diff --git a/java/practice-problems/JOB_QUERIES_SUMMARY.sql b/java/practice-problems/JOB_QUERIES_SUMMARY.sql
+new file mode 100644
+index 0000000..575ae62
+--- /dev/null
++++ b/java/practice-problems/JOB_QUERIES_SUMMARY.sql
+@@ -0,0 +1,84 @@
++-- ============================================================================
++-- JOB EXECUTION QUERIES SUMMARY
++-- ============================================================================
++-- Tables:
++--   - job_executions(execution_id BIGINT NOT NULL, job_name VARCHAR NOT NULL)
++--   - job_status_history(execution_id, timestamp, status)
++-- ============================================================================
++
++-- ============================================================================
++-- QUERY 1: Latest Execution ID per Job
++-- ============================================================================
++-- Result: job_name, last_execution_id
++
++SELECT 
++    job_name,
++    MAX(execution_id) AS last_execution_id
++FROM 
++    job_executions
++GROUP BY 
++    job_name
++ORDER BY 
++    job_name;
++
++-- ============================================================================
++-- QUERY 2: Latest Execution with Last Status Change Timestamp
++-- ============================================================================
++-- Result: job_name, last_execution_id, last_status_change_timestamp
++
++SELECT 
++    je.job_name,
++    je.execution_id AS last_execution_id,
++    MAX(jsh.timestamp) AS last_status_change_timestamp
++FROM job_executions je
++INNER JOIN (
++    SELECT job_name, MAX(execution_id) AS max_execution_id
++    FROM job_executions
++    GROUP BY job_name
++) latest_exec 
++    ON je.job_name = latest_exec.job_name 
++    AND je.execution_id = latest_exec.max_execution_id
++LEFT JOIN job_status_history jsh 
++    ON je.execution_id = jsh.execution_id
++GROUP BY je.job_name, je.execution_id
++ORDER BY je.job_name;
++
++-- ============================================================================
++-- QUERY 3: Job Name with Last Status of Highest Execution
++-- ============================================================================
++-- Result: job_name, last_status
++
++SELECT 
++    je.job_name,
++    jsh.status AS last_status
++FROM 
++    job_executions je
++INNER JOIN (
++    SELECT 
++        job_name,
++        MAX(execution_id) AS max_execution_id
++    FROM 
++        job_executions
++    GROUP BY 
++        job_name
++) latest_exec 
++    ON je.job_name = latest_exec.job_name 
++    AND je.execution_id = latest_exec.max_execution_id
++INNER JOIN (
++    SELECT DISTINCT ON (execution_id)
++        execution_id,
++        status
++    FROM 
++        job_status_history
++    ORDER BY 
++        execution_id,
++        timestamp DESC
++) jsh ON je.execution_id = jsh.execution_id
++ORDER BY 
++    je.job_name;
++
++-- ============================================================================
++-- RECOMMENDED INDEXES FOR PERFORMANCE
++-- ============================================================================
++CREATE INDEX idx_job_executions_name_id ON job_executions(job_name, execution_id);
++CREATE INDEX idx_job_status_execution_timestamp ON job_status_history(execution_id, timestamp DESC);
+diff --git a/java/practice-problems/out/practice/HelloWorld.class b/java/practice-problems/out/practice/HelloWorld.class
+new file mode 100644
+index 0000000..ba68ea1
+Binary files /dev/null and b/java/practice-problems/out/practice/HelloWorld.class differ
+diff --git a/java/practice-problems/out/practice/HelloWorldTest.class b/java/practice-problems/out/practice/HelloWorldTest.class
+new file mode 100644
+index 0000000..38f9c8e
+Binary files /dev/null and b/java/practice-problems/out/practice/HelloWorldTest.class differ
+diff --git a/java/practice-problems/src/main/java/banking/Account.java b/java/practice-problems/src/main/java/banking/Account.java
+new file mode 100644
+index 0000000..a23f7d3
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/Account.java
+@@ -0,0 +1,59 @@
++package banking;
++
++/**
++ * Abstract bank account class.<br>
++ * <br>
++ * <p>
++ * Private Variables:<br>
++ * {@link #accountHolder}: AccountHolder<br>
++ * {@link #accountNumber}: Long<br>
++ * {@link #pin}: int<br>
++ * {@link #balance}: double<br><br>
++ *
++ * Scalability/Extensibility notes:
++ * - Balance operations are synchronized for thread safety within a single JVM.
++ * - For higher throughput, consider an external ledger or transactional store.
++ */
++public abstract class Account implements AccountInterface {
++    private AccountHolder accountHolder;
++    private Long accountNumber;
++    private int pin;
++    private double balance;
++
++    protected Account(AccountHolder accountHolder, Long accountNumber, int pin, double startingDeposit) {
++        this.accountHolder = accountHolder;
++        this.accountNumber = accountNumber;
++        this.pin = pin;
++        this.balance = startingDeposit;
++    }
++
++    public AccountHolder getAccountHolder() {
++        return accountHolder;
++    }
++
++    public boolean validatePin(int attemptedPin) {
++        return this.pin == attemptedPin;
++    }
++
++    public synchronized double getBalance() {
++        return balance;
++    }
++
++    public Long getAccountNumber() {
++        return accountNumber;
++    }
++
++    public synchronized void creditAccount(double amount) {
++        if (amount > 0) {
++            balance += amount;
++        }
++    }
++
++    public synchronized boolean debitAccount(double amount) {
++        if (amount > 0 && balance >= amount) {
++            balance -= amount;
++            return true;
++        }
++        return false;
++    }
++}
+diff --git a/java/practice-problems/src/main/java/banking/AccountHolder.java b/java/practice-problems/src/main/java/banking/AccountHolder.java
+new file mode 100644
+index 0000000..8900088
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/AccountHolder.java
+@@ -0,0 +1,19 @@
++package banking;
++
++public abstract class AccountHolder {
++    private int idNumber;
++
++    /**
++     * @param idNumber The government-issued ID used during account setup.
++     */
++    public AccountHolder(int idNumber) {
++        this.idNumber = idNumber;
++    }
++
++    /**
++     * @return private int {@link AccountHolder#idNumber}
++     */
++    public int getIdNumber() {
++        return idNumber;
++    }
++}
+diff --git a/java/practice-problems/src/main/java/banking/AccountInterface.java b/java/practice-problems/src/main/java/banking/AccountInterface.java
+new file mode 100644
+index 0000000..8d71b50
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/AccountInterface.java
+@@ -0,0 +1,39 @@
++package banking;
++
++/**
++ * The public methods for the {@link Account} class
++ */
++public interface AccountInterface {
++
++    /**
++     * @return The {@link AccountHolder}.
++     */
++    AccountHolder getAccountHolder();
++
++    /**
++     * @param attemptedPin The attempted PIN.
++     * @return true if attemptedPin matches the account; otherwise, return false.
++     */
++    boolean validatePin(int attemptedPin);
++
++    /**
++     * @return {@link Account#accountBalance}.
++     */
++    double getBalance();
++
++    /**
++     * @return {@link Account#accountNumber}
++     */
++    Long getAccountNumber();
++
++    /**
++     * @param amount The amount to be deposited into the account.
++     */
++    void creditAccount(double amount);
++
++    /**
++     * @param amount The amount to be withdrawn from the account.
++     * @return true if amount could be withdrawn; otherwise, return false.
++     */
++    boolean debitAccount(double amount);
++}
+diff --git a/java/practice-problems/src/main/java/banking/BANKING_SYSTEM.puml b/java/practice-problems/src/main/java/banking/BANKING_SYSTEM.puml
+new file mode 100644
+index 0000000..807cbc3
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/BANKING_SYSTEM.puml
+@@ -0,0 +1,134 @@
++@startuml Banking System Class Diagram
++
++' Interfaces
++interface BankInterface {
++    +getAccount(Long): Account
++    +openCommercialAccount(Company, int, double): Long
++    +openConsumerAccount(Person, int, double): Long
++    +authenticateUser(Long, int): boolean
++    +getBalance(Long): double
++    +credit(Long, double): void
++    +debit(Long, double): boolean
++}
++
++interface TransactionInterface {
++    +getBalance(): double
++    +credit(double): void
++    +debit(double): boolean
++}
++
++' Abstract Classes
++abstract class AccountHolder {
++    -idNumber: int
++    +AccountHolder(int)
++    +getIdNumber(): int
++}
++
++abstract class Account {
++    -accountHolder: AccountHolder
++    -accountNumber: Long
++    -pin: int
++    -balance: double
++    +Account(AccountHolder, Long, int, double)
++    +getAccountHolder(): AccountHolder
++    +validatePin(int): boolean
++    +getBalance(): double
++    +getAccountNumber(): Long
++    +creditAccount(double): void
++    +debitAccount(double): boolean
++}
++
++' Concrete Classes
++class Bank {
++    -accounts: Map<Long, Account>
++    -{static} accountNumberGenerator: AtomicLong
++    +Bank()
++    +getAccount(Long): Account
++    +openCommercialAccount(Company, int, double): Long
++    +openConsumerAccount(Person, int, double): Long
++    +authenticateUser(Long, int): boolean
++    +getBalance(Long): double
++    +credit(Long, double): void
++    +debit(Long, double): boolean
++}
++
++class Person {
++    -firstName: String
++    -lastName: String
++    +Person(String, String, int)
++    +getFirstName(): String
++    +getLastName(): String
++}
++
++class Company {
++    -companyName: String
++    +Company(String, int)
++    +getCompanyName(): String
++}
++
++class ConsumerAccount {
++    +ConsumerAccount(Person, Long, int, double)
++}
++
++class CommercialAccount {
++    -authorizedUsers: List<Person>
++    +CommercialAccount(Company, Long, int, double)
++    +addAuthorizedUser(Person): void
++    +isAuthorizedUser(Person): boolean
++}
++
++class Transaction {
++    -bank: Bank
++    -accountNumber: Long
++    +Transaction(Bank, Long, int)
++    +getBalance(): double
++    +credit(double): void
++    +debit(double): boolean
++}
++
++' Relationships
++Bank ..|> BankInterface : implements
++Bank "1" *-- "0..*" Account : manages
++
++Person --|> AccountHolder : extends
++Company --|> AccountHolder : extends
++
++Account "1" o-- "1" AccountHolder : has
++
++ConsumerAccount --|> Account : extends
++CommercialAccount --|> Account : extends
++CommercialAccount "1" o-- "0..*" Person : authorizedUsers
++
++Transaction ..|> TransactionInterface : implements
++Transaction "1" --> "1" Bank : uses
++Transaction ..> Account : operates on
++
++' Notes
++note right of Bank
++  **Implementation:**
++  - Map<Long, Account> (ConcurrentHashMap)
++  - AtomicLong for account generation
++  - Account-level synchronization for balance updates
++  - In production, use a durable store + distributed ID generator
++end note
++
++note right of Account
++  **Thread-Safety:**
++  - Synchronized getBalance/credit/debit
++  - Safe for concurrent operations
++end note
++
++note right of AccountHolder
++  **Abstract Class:**
++  - Person and Company extend this
++  - Provides getIdNumber() method
++end note
++
++note right of Transaction
++  **Authentication:**
++  - attemptedPin used in constructor only
++  - Throws Exception if auth fails
++  - Not stored as field
++end note
++
++@enduml
+diff --git a/java/practice-problems/src/main/java/banking/BANKING_SYSTEM_DESIGN.md b/java/practice-problems/src/main/java/banking/BANKING_SYSTEM_DESIGN.md
+new file mode 100644
+index 0000000..6f28600
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/BANKING_SYSTEM_DESIGN.md
+@@ -0,0 +1,33 @@
++# Banking System Design Notes
++
++## Goals
++- Keep core operations fast and predictable under higher load.
++- Allow safe concurrent access to accounts.
++- Make storage and ID generation replaceable for multi-node deployments.
++
++## Current Design (Single JVM)
++- `Bank` stores accounts in a `ConcurrentHashMap<Long, Account>`.
++- Account numbers are generated with an `AtomicLong`.
++- `Account` synchronizes balance updates (`creditAccount`, `debitAccount`).
++- `Transaction` authenticates once at construction and then delegates to `Bank`.
++
++## Scaling to 20x Volume
++- **Partitioning:** Key by account number (or hash) to distribute accounts across shards.
++- **Isolation:** Per-account synchronization avoids global locks, so throughput grows with number of accounts.
++- **Memory bounds:** Keep only required account state in memory; move historical data to a durable store.
++
++## Trade-offs
++- **In-memory map** is fast but not durable. A crash loses state.
++- **AtomicLong** is safe in one JVM but not unique across nodes.
++- **Synchronized balance** ensures correctness but can limit throughput on hot accounts.
++
++## Extension Points
++- Replace map with a repository interface (SQL/NoSQL).
++- Replace `AtomicLong` with a distributed ID service or database sequence.
++- Add auditing/logging for all credits/debits.
++- Add account-level policies (overdraft limits, daily withdrawal caps).
++
++## Notes for Distributed Environment
++- Use a durable store for account state.
++- Use a distributed lock or transactional DB for balance updates.
++- Ensure ID uniqueness across nodes (UUID, Snowflake, DB sequence).
+diff --git a/java/practice-problems/src/main/java/banking/Bank.java b/java/practice-problems/src/main/java/banking/Bank.java
+new file mode 100644
+index 0000000..a69cbb3
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/Bank.java
+@@ -0,0 +1,72 @@
++package banking;
++
++import java.util.Map;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.atomic.AtomicLong;
++
++/**
++ * Private Variables:<br>
++ * {@link #accounts}: List&lt;Long, Account&gt;<br><br>
++ *
++ * Scalability/Extensibility notes:
++ * - In-memory storage is fast but not durable; replace with a repository if persistence is required.
++ * - AtomicLong is safe within a single JVM; use a distributed ID generator for multi-node deployments.
++ */
++public class Bank implements BankInterface {
++    private final Map<Long, Account> accounts;
++    private static final AtomicLong accountNumberGenerator = new AtomicLong(1000000L);
++
++    public Bank() {
++        this.accounts = new ConcurrentHashMap<>();
++    }
++
++    public Account getAccount(Long accountNumber) {
++        return accounts.get(accountNumber);
++    }
++
++    public Long openCommercialAccount(Company company, int pin, double startingDeposit) {
++        Long accountNumber = accountNumberGenerator.getAndIncrement();
++        Account account = new CommercialAccount(company, accountNumber, pin, startingDeposit);
++        accounts.put(accountNumber, account);
++        return accountNumber;
++    }
++
++    public Long openConsumerAccount(Person person, int pin, double startingDeposit) {
++        Long accountNumber = accountNumberGenerator.getAndIncrement();
++        Account account = new ConsumerAccount(person, accountNumber, pin, startingDeposit);
++        accounts.put(accountNumber, account);
++        return accountNumber;
++    }
++
++    public boolean authenticateUser(Long accountNumber, int pin) {
++        Account account = getAccount(accountNumber);
++        if (account == null) {
++            return false;
++        }
++        return account.validatePin(pin);
++    }
++
++    public double getBalance(Long accountNumber) {
++        Account account = getAccount(accountNumber);
++        if (account == null) {
++            return -1;
++        }
++        return account.getBalance();
++    }
++
++    public void credit(Long accountNumber, double amount) {
++        Account account = getAccount(accountNumber);
++        if (account == null) {
++            return;
++        }
++        account.creditAccount(amount);
++    }
++
++    public boolean debit(Long accountNumber, double amount) {
++        Account account = getAccount(accountNumber);
++        if (account == null) {
++            return false;
++        }
++        return account.debitAccount(amount);
++    }
++}
+diff --git a/java/practice-problems/src/main/java/banking/BankInterface.java b/java/practice-problems/src/main/java/banking/BankInterface.java
+new file mode 100644
+index 0000000..598c4fe
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/BankInterface.java
+@@ -0,0 +1,60 @@
++package banking;
++
++/**
++ * The public methods for the {@link Bank} class.
++ */
++public interface BankInterface {
++
++    /**
++     * Retrieves the account with the specified account number.
++     * @param accountNumber The account number.
++     * @return The account for the given account number.
++     */
++    Account getAccount(Long accountNumber);
++    
++    /**
++     * Creates a new account and adds it to {@link Bank#accounts}.
++     *
++     * @param company
++     * @param pin
++     * @param startingDeposit
++     * @return The account number for the newly created account.
++     */
++    Long openCommercialAccount(Company company, int pin, double startingDeposit);
++
++    /**
++     * Creates a new account and adds it to {@link Bank#accounts}.
++     *
++     * @param person
++     * @param pin
++     * @param startingDeposit
++     * @return The account number for the newly created account.
++     */
++    Long openConsumerAccount(Person person, int pin, double startingDeposit);
++
++    /**
++     * @param accountNumber The account number for the transaction.
++     * @param pin
++     * @return true if authentication was successful.
++     */
++    boolean authenticateUser(Long accountNumber, int pin);
++
++    /**
++     * @param accountNumber The account number for the transaction.
++     * @return the balance of the account.
++     */
++    double getBalance(Long accountNumber);
++
++    /**
++     * @param accountNumber The account number for the transaction.
++     * @param amount        The amount of money being deposited.
++     */
++    void credit(Long accountNumber, double amount);
++
++    /**
++     * @param accountNumber The account number for the transaction.
++     * @param amount
++     * @return true if amount could be withdrawn; otherwise, return false.
++     */
++    boolean debit(Long accountNumber, double amount);
++}
+diff --git a/java/practice-problems/src/main/java/banking/CommercialAccount.java b/java/practice-problems/src/main/java/banking/CommercialAccount.java
+new file mode 100644
+index 0000000..d748824
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/CommercialAccount.java
+@@ -0,0 +1,36 @@
++package banking;
++
++import java.util.ArrayList;
++import java.util.List;
++
++/**
++ * Account implementation for commercial (business) customers.<br><br>
++ * <p>
++ * Private Variables:<br>
++ * {@link #authorizedUsers}: List&lt;Person&gt;<br>
++ */
++public class CommercialAccount extends Account {
++    private List<Person> authorizedUsers;
++
++    public CommercialAccount(Company company, Long accountNumber, int pin, double startingDeposit) {
++        super(company, accountNumber, pin, startingDeposit);
++        this.authorizedUsers = new ArrayList<>();
++    }
++
++    /**
++     * @param person The authorized user to add to the account.
++     */
++    protected synchronized void addAuthorizedUser(Person person) {
++        if (person != null && !authorizedUsers.contains(person)) {
++            authorizedUsers.add(person);
++        }
++    }
++
++    /**
++     * @param person
++     * @return true if person matches an authorized user in {@link #authorizedUsers}; otherwise, false.
++     */
++    public synchronized boolean isAuthorizedUser(Person person) {
++        return person != null && authorizedUsers.contains(person);
++    }
++}
+diff --git a/java/practice-problems/src/main/java/banking/Company.java b/java/practice-problems/src/main/java/banking/Company.java
+new file mode 100644
+index 0000000..255a9fb
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/Company.java
+@@ -0,0 +1,14 @@
++package banking;
++
++public class Company extends AccountHolder {
++    private String companyName;
++
++    public Company(String companyName, int taxId) {
++        super(taxId);
++        this.companyName = companyName;
++    }
++
++    public String getCompanyName() {
++        return companyName;
++    }
++}
+diff --git a/java/practice-problems/src/main/java/banking/ConsumerAccount.java b/java/practice-problems/src/main/java/banking/ConsumerAccount.java
+new file mode 100644
+index 0000000..beec2b4
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/ConsumerAccount.java
+@@ -0,0 +1,7 @@
++package banking;
++
++public class ConsumerAccount extends Account {
++    public ConsumerAccount(Person person, Long accountNumber, int pin, double currentBalance) {
++        super(person, accountNumber, pin, currentBalance);
++    }
++}
+diff --git a/java/practice-problems/src/main/java/banking/Person.java b/java/practice-problems/src/main/java/banking/Person.java
+new file mode 100644
+index 0000000..9fe4522
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/Person.java
+@@ -0,0 +1,20 @@
++package banking;
++
++public class Person extends AccountHolder {
++    private String firstName;
++    private String lastName;
++
++    public Person(String firstName, String lastName, int idNumber) {
++        super(idNumber);
++        this.firstName = firstName;
++        this.lastName = lastName;
++    }
++
++    public String getFirstName() {
++        return firstName;
++    }
++
++    public String getLastName() {
++        return lastName;
++    }
++}
+diff --git a/java/practice-problems/src/main/java/banking/Transaction.java b/java/practice-problems/src/main/java/banking/Transaction.java
+new file mode 100644
+index 0000000..7e4e3b2
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/Transaction.java
+@@ -0,0 +1,41 @@
++package banking;
++
++/**
++ * Private Variables:<br>
++ * {@link #accountNumber}: Long<br>
++ * {@link #bank}: Bank<br><br>
++ *
++ * Design note:
++ * - Authentication happens once at construction; further operations assume validity.
++ */
++public class Transaction implements TransactionInterface {
++    private Long accountNumber;
++    private Bank bank;
++
++    /**
++     * @param bank          The bank where the account is housed.
++     * @param accountNumber The customer's account number.
++     * @param attemptedPin  The PIN entered by the customer.
++     * @throws Exception Account validation failed.
++     */
++    public Transaction(Bank bank, Long accountNumber, int attemptedPin) throws Exception {
++        this.bank = bank;
++        this.accountNumber = accountNumber;
++        
++        if (!bank.authenticateUser(accountNumber, attemptedPin)) {
++            throw new Exception("Account validation failed.");
++        }
++    }
++
++    public double getBalance() {
++        return bank.getBalance(accountNumber);
++    }
++
++    public void credit(double amount) {
++        bank.credit(accountNumber, amount);
++    }
++
++    public boolean debit(double amount) {
++        return bank.debit(accountNumber, amount);
++    }
++}
+diff --git a/java/practice-problems/src/main/java/banking/TransactionInterface.java b/java/practice-problems/src/main/java/banking/TransactionInterface.java
+new file mode 100644
+index 0000000..63ee553
+--- /dev/null
++++ b/java/practice-problems/src/main/java/banking/TransactionInterface.java
+@@ -0,0 +1,28 @@
++package banking;
++
++/**
++ * Interface defining transaction operations.
++ */
++public interface TransactionInterface {
++    /**
++     * Get the balance of the account.
++     * 
++     * @return Account balance
++     */
++    double getBalance();
++
++    /**
++     * Credit (add money to) the account.
++     * 
++     * @param amount Amount to credit
++     */
++    void credit(double amount);
++
++    /**
++     * Debit (withdraw money from) the account.
++     * 
++     * @param amount Amount to debit
++     * @return true if successful, false if insufficient funds
++     */
++    boolean debit(double amount);
++}
+diff --git a/java/practice-problems/src/main/java/velocityProvider/VELOCITY_PROVIDER_ARCHITECTURE.md b/java/practice-problems/src/main/java/velocityProvider/VELOCITY_PROVIDER_ARCHITECTURE.md
+new file mode 100644
+index 0000000..703c55f
+--- /dev/null
++++ b/java/practice-problems/src/main/java/velocityProvider/VELOCITY_PROVIDER_ARCHITECTURE.md
+@@ -0,0 +1,340 @@
++# VelocityProvider Architecture Documentation
++
++## Overview
++
++The VelocityProvider is a fraud detection system designed to track card usage velocity (frequency) within configurable time windows. This document explains the architectural decisions, design patterns, and extensibility points.
++
++## Design Principles
++
++### 1. Maintainability
++- **Separation of Concerns**: Each class has a single, well-defined responsibility
++- **Clear Naming**: Descriptive class and method names that reflect intent
++- **Comprehensive Documentation**: Every public interface and class is documented
++- **Fail-Fast Validation**: Input validation catches errors early
++
++### 2. Readability
++- **Logical Structure**: Code flows naturally from abstract to concrete
++- **Consistent Patterns**: Builder pattern for configuration, Strategy pattern for algorithms
++- **Clear Interfaces**: Simple, intuitive method signatures
++- **Explanatory Comments**: Complex logic is explained inline
++
++### 3. Extensibility
++- **Strategy Pattern**: Pluggable storage and cleanup strategies
++- **Interface-Based Design**: Easy to swap implementations
++- **Configuration System**: Tunable parameters without code changes
++- **Open/Closed Principle**: Open for extension, closed for modification
++
++### 4. Scalability
++- **Efficient Algorithms**: O(log n) operations for time-window queries
++- **Thread-Safety**: Proper synchronization for concurrent access
++- **Memory Management**: Automatic cleanup prevents unbounded growth
++- **Distributed-Ready**: Interfaces support future distributed implementations
++
++## Architecture Components
++
++```
++VelocityProvider (Interface)
++    ↓
++VelocityProviderImpl
++    ├── TimestampStorage (Interface)
++    │   └── TreeSetTimestampStorage (Implementation)
++    ├── CleanupStrategy (Interface)
++    │   └── ProbabilisticCleanupStrategy (Implementation)
++    └── VelocityProviderConfig
++        └── Builder (Inner Class)
++```
++
++### Core Components
++
++#### 1. VelocityProvider (Interface)
++**Purpose**: Public API for card velocity checking
++
++**Key Methods**:
++- `getCardUsageCount(Payment, Duration)`: Query card usage in time window
++- `registerPayment(Payment)`: Record a new payment
++- `getProvider()`: Factory method for creating instances
++
++**Why Interface**: Allows for multiple implementations (in-memory, distributed, mock for testing)
++
++#### 2. VelocityProviderImpl
++**Purpose**: Coordinates storage and cleanup strategies
++
++**Responsibilities**:
++- Input validation
++- Delegation to storage and cleanup components
++- Configuration management
++
++**Why This Design**: Single Responsibility - orchestrates but doesn't implement storage/cleanup logic
++
++#### 3. TimestampStorage (Interface)
++**Purpose**: Abstract storage mechanism for payment timestamps
++
++**Key Methods**:
++- `addTimestamp(String, Instant)`: Store a timestamp
++- `countInWindow(String, Instant, Duration)`: Count timestamps in window
++- `removeOlderThan(Instant)`: Cleanup old data
++- `getOldestTimestamp()`: Track oldest data point
++
++**Why Interface**: Allows different storage backends without changing core logic
++
++#### 4. TreeSetTimestampStorage
++**Purpose**: In-memory storage using TreeSet for efficient range queries
++
++**Data Structure**:
++- `ConcurrentHashMap<String, TreeSet<Instant>>`: Thread-safe card → timestamps mapping
++- TreeSet provides O(log n) insertion and range queries
++
++**Key Features**:
++- Thread-safe with synchronized blocks
++- Efficient subSet operations for time windows
++- Tracks oldest timestamp for cleanup optimization
++
++**Performance Characteristics**:
++- Insert: O(log n) per card
++- Query: O(log n + k) where k = results in window
++- Cleanup: O(m * n) where m = cards, n = timestamps per card
++
++#### 5. CleanupStrategy (Interface)
++**Purpose**: Abstract cleanup decision and execution
++
++**Key Methods**:
++- `shouldCleanup()`: Decide if cleanup should run
++- `cleanup(TimestampStorage, Instant)`: Execute cleanup
++
++**Why Interface**: Different cleanup policies for different scenarios
++
++#### 6. ProbabilisticCleanupStrategy
++**Purpose**: Distribute cleanup overhead across multiple operations
++
++**Algorithm**:
++- Random selection: Cleanup on ~0.1% of registrations (configurable)
++- Removes data older than threshold (default: 24 hours)
++
++**Benefits**:
++- No single request bears all cleanup cost
++- Amortized O(1) cleanup overhead
++- Configurable frequency and retention
++
++#### 7. VelocityProviderConfig
++**Purpose**: Centralized configuration with Builder pattern
++
++**Parameters**:
++- `cleanupThreshold`: How old data must be before cleanup
++- `cleanupProbability`: Frequency of cleanup attempts
++
++**Builder Pattern Benefits**:
++- Flexible, readable configuration
++- Immutable config objects
++- Clear defaults
++- Validation at build time
++
++## Performance Characteristics
++
++### Time Complexity
++| Operation | Complexity | Notes |
++|-----------|------------|-------|
++| registerPayment | O(log n) | TreeSet insertion per card |
++| getCardUsageCount | O(log n + k) | Binary search + k results |
++| cleanup | O(m * n) amortized | Probabilistic distribution |
++
++Where:
++- n = timestamps per card
++- k = results in time window
++- m = number of unique cards
++
++### Space Complexity
++- O(m * n) where m = unique cards, n = avg timestamps per card
++- Bounded by cleanup threshold (typically 24 hours of data)
++
++### Scalability Considerations
++
++**Current Limits**:
++- Single JVM memory bound
++- ~10-100 million timestamps feasible with 16GB heap
++- Thread-safe for multi-threaded payment processing
++
++**Future Scaling**:
++- Implement distributed storage (Redis, Cassandra)
++- Shard by card hash for horizontal scaling
++- Use time-series databases for better compression
++
++## Extension Points
++
++### 1. Custom Storage Implementation
++
++Implement `TimestampStorage` for different backends:
++
++```java
++// Example: Redis-based storage
++class RedisTimestampStorage implements TimestampStorage {
++    private final JedisPool jedisPool;
++    
++    @Override
++    public void addTimestamp(String cardHash, Instant timestamp) {
++        try (Jedis jedis = jedisPool.getResource()) {
++            jedis.zadd("card:" + cardHash, 
++                       timestamp.toEpochMilli(), 
++                       timestamp.toString());
++        }
++    }
++    
++    @Override
++    public int countInWindow(String cardHash, Instant queryTime, Duration duration) {
++        try (Jedis jedis = jedisPool.getResource()) {
++            long min = queryTime.minus(duration).toEpochMilli();
++            long max = queryTime.toEpochMilli();
++            return jedis.zcount("card:" + cardHash, min, max).intValue();
++        }
++    }
++    
++    // Implement other methods...
++}
++```
++
++### 2. Custom Cleanup Strategy
++
++Implement `CleanupStrategy` for different policies:
++
++```java
++// Example: Time-based cleanup (every N minutes)
++class ScheduledCleanupStrategy implements CleanupStrategy {
++    private Instant lastCleanup;
++    private final Duration cleanupInterval;
++    
++    public ScheduledCleanupStrategy(Duration interval) {
++        this.cleanupInterval = interval;
++        this.lastCleanup = Instant.now();
++    }
++    
++    @Override
++    public boolean shouldCleanup() {
++        Instant now = Instant.now();
++        if (Duration.between(lastCleanup, now).compareTo(cleanupInterval) >= 0) {
++            lastCleanup = now;
++            return true;
++        }
++        return false;
++    }
++    
++    @Override
++    public void cleanup(TimestampStorage storage, Instant currentTime) {
++        storage.removeOlderThan(currentTime.minus(Duration.ofHours(24)));
++    }
++}
++```
++
++### 3. Custom Configuration
++
++Create specialized configurations for different use cases:
++
++```java
++// High-frequency trading scenario - aggressive cleanup
++VelocityProviderConfig highFrequencyConfig = new VelocityProviderConfig.Builder()
++    .cleanupThreshold(Duration.ofMinutes(30))  // Keep only 30 minutes
++    .cleanupProbability(0.01)  // Clean more frequently (1%)
++    .build();
++
++// Low-frequency scenario - less aggressive
++VelocityProviderConfig lowFrequencyConfig = new VelocityProviderConfig.Builder()
++    .cleanupThreshold(Duration.ofDays(7))  // Keep 7 days
++    .cleanupProbability(0.0001)  // Clean rarely (0.01%)
++    .build();
++
++VelocityProvider provider = new VelocityProviderImpl(highFrequencyConfig);
++```
++
++## Testing Strategy
++
++### Unit Tests
++- Test each component in isolation
++- Mock dependencies (storage, cleanup strategies)
++- Test edge cases (null inputs, boundary conditions)
++- Verify thread-safety with concurrent tests
++
++### Integration Tests
++- Test full system with real storage
++- Verify time window calculations
++- Test cleanup mechanisms
++- Performance benchmarks
++
++### Example Test Scenarios
++1. **Basic Functionality**: Register payment, verify count
++2. **Time Windows**: Payments inside/outside window
++3. **Multiple Cards**: Isolation between cards
++4. **Boundary Conditions**: Exact window edges
++5. **Thread Safety**: Concurrent registrations and queries
++6. **Cleanup**: Verify old data removal
++7. **Configuration**: Custom settings work correctly
++
++## Monitoring and Observability
++
++### Key Metrics to Track
++1. **Query Latency**: p50, p95, p99 for getCardUsageCount
++2. **Registration Latency**: p50, p95, p99 for registerPayment
++3. **Memory Usage**: Heap size, timestamp count per card
++4. **Cleanup Duration**: Time spent in cleanup operations
++5. **False Positive Rate**: Cards incorrectly flagged as fraud
++
++### Logging Strategy
++```java
++// Add structured logging
++private static final Logger logger = LoggerFactory.getLogger(VelocityProviderImpl.class);
++
++@Override
++public void registerPayment(Payment payment) {
++    long startTime = System.nanoTime();
++    try {
++        // ... registration logic ...
++        
++        long duration = System.nanoTime() - startTime;
++        if (duration > SLOW_THRESHOLD_NANOS) {
++            logger.warn("Slow registration: {}ns for card hash starting with {}", 
++                       duration, 
++                       payment.getHashedCardNumber().substring(0, 4));
++        }
++    } catch (Exception e) {
++        logger.error("Registration failed for payment {}", payment.getPaymentId(), e);
++        throw e;
++    }
++}
++```
++
++## Production Considerations
++
++### Configuration Tuning
++- **High Traffic** (>1M payments/day):
++  - cleanupProbability: 0.01 (1%)
++  - cleanupThreshold: 6-12 hours
++  - Consider distributed storage
++
++- **Medium Traffic** (100K-1M payments/day):
++  - cleanupProbability: 0.001 (0.1%)
++  - cleanupThreshold: 24 hours
++  - In-memory storage sufficient
++
++- **Low Traffic** (<100K payments/day):
++  - cleanupProbability: 0.0001 (0.01%)
++  - cleanupThreshold: 7 days
++  - In-memory storage sufficient
++
++### Deployment Checklist
++- [ ] Configure appropriate cleanup parameters for traffic volume
++- [ ] Set up monitoring and alerting
++- [ ] Configure JVM heap size based on expected data volume
++- [ ] Test failover scenarios (if using distributed storage)
++- [ ] Document operational procedures
++- [ ] Set up performance baselines
++
++## Future Enhancements
++
++1. **Distributed Storage**: Redis/Cassandra backend for horizontal scaling
++2. **Async Processing**: Non-blocking registration with CompletableFuture
++3. **Metrics Export**: Prometheus/Grafana integration
++4. **Advanced Cleanup**: LRU-based cleanup for memory pressure
++5. **Query Optimization**: Bloom filters for non-existent cards
++6. **Compression**: Time-series compression for historical data
++7. **Batch Operations**: Bulk registration and queries
++
++## Conclusion
++
++This architecture prioritizes production readiness through clear separation of concerns, extensible design, and operational considerations. The system can handle high throughput while remaining maintainable and adaptable to changing requirements.
+diff --git a/java/practice-problems/src/main/java/velocityProvider/VelocityProvider.java b/java/practice-problems/src/main/java/velocityProvider/VelocityProvider.java
+new file mode 100644
+index 0000000..dc5508f
+--- /dev/null
++++ b/java/practice-problems/src/main/java/velocityProvider/VelocityProvider.java
+@@ -0,0 +1,500 @@
++import java.util.*;
++import java.time.*;
++
++public class Solution {
++    
++    static class Payment {
++        /* The payment ID. */
++        private final String paymentId;
++        /* The timestamp of the payment processing start. */
++        private final Instant timestamp;
++        /* The hashed card number used for the payment. */
++        private final String hashedCardNumber;
++        
++        /*
++         * EXTENSIBILITY NOTE - Merchant-Specific Configuration:
++         * To support per-merchant retention/limits, add:
++         *   private final String merchantId;
++         * Then use Map<String, VelocityProviderConfig> or MerchantConfigService
++         * to apply merchant-specific cleanup thresholds while keeping rule
++         * durations external (passed as the duration parameter).
++         */
++
++        public Payment(String paymentId, Instant timestamp, String hashedCardNumber) {
++            this.paymentId = paymentId;
++            this.timestamp = timestamp;
++            this.hashedCardNumber = hashedCardNumber;
++        }
++
++        public String getPaymentId() {
++            return paymentId;
++        }
++
++        public Instant getTimestamp() {
++            return timestamp;
++        }
++
++        public String getHashedCardNumber() {
++            return hashedCardNumber;
++        }
++    }
++
++    
++    interface VelocityProvider {
++
++        /**
++         * This method is called during the payment risk assessment.
++         * 
++         * It returns how many times the card in the Payment has been seen in the last minutes/seconds/hours as
++         * defined in the {@code duration} parameter at the time of the payment processing start.
++         *
++         * @param payment  The payment being processed
++         * @param duration The interval to count
++         * @return The number of times the card was used in the interval defined in duration.
++         */
++        int getCardUsageCount(Payment payment, Duration duration);
++
++
++        /**
++         * After the payment is processed this method is called.
++         *
++         * @param payment The payment that has been processed.
++         */
++        void registerPayment(Payment payment);
++
++        /**
++         * @return Instance of a Velocity provider
++         */
++        static VelocityProvider getProvider() {
++            return new VelocityProviderImpl();
++        }
++    }
++
++    /**
++     * Production-ready implementation of VelocityProvider with focus on:
++     * - Maintainability: Clear separation of concerns, well-documented code
++     * - Readability: Descriptive names, logical structure, clear intent
++     * - Extensibility: Pluggable strategies for storage and cleanup
++     * - Scalability: Thread-safe, efficient algorithms, configurable memory management
++     * 
++     * MERCHANT-SPECIFIC CONFIGURATION PATTERN (when needed):
++     * To support per-merchant retention policies:
++     * 
++     * 1. Add merchantId to Payment class
++     * 2. Create MerchantConfigService:
++     *    interface MerchantConfigService {
++     *        VelocityProviderConfig getConfig(String merchantId);
++     *    }
++     * 3. Store merchant configs:
++     *    Map<String, VelocityProviderConfig> merchantConfigs = new ConcurrentHashMap<>();
++     * 4. At query/registration time:
++     *    VelocityProviderConfig config = merchantConfigs.get(payment.getMerchantId());
++     *    
++     * This allows different merchants to have:
++     * - Different cleanup thresholds (e.g., high-risk merchants keep 30 days, others 7 days)
++     * - Different cleanup frequencies
++     * - While keeping rule durations (velocity windows) external as query parameters
++     * 
++     * SCALABILITY SUMMARY:
++     * - Per-request cost: O(log n + k) per card query
++     * - Memory: Bounded by cleanup threshold × payment volume
++     * - Thread-safe: Safe for concurrent payment processing
++     * - Sharding ready: Easy to distribute by card hash or merchantId
++     * - 20x scale: partition by card hash, keep per-card state local, and bound history with cleanup
++     */
++    static class VelocityProviderImpl implements VelocityProvider {
++        
++        // Storage strategy for payment timestamps
++        private final TimestampStorage timestampStorage;
++        
++        // Cleanup strategy for old data
++        private final CleanupStrategy cleanupStrategy;
++        
++        // Configuration for the provider
++        private final VelocityProviderConfig config;
++        
++        /**
++         * Default constructor with standard configuration.
++         */
++        public VelocityProviderImpl() {
++            this(VelocityProviderConfig.defaultConfig());
++        }
++        
++        /**
++         * Constructor with custom configuration for flexibility.
++         * Allows tuning behavior for different use cases.
++         */
++        public VelocityProviderImpl(VelocityProviderConfig config) {
++            this.config = config;
++            this.timestampStorage = new TreeMapTimestampStorage();
++            this.cleanupStrategy = new ProbabilisticCleanupStrategy(
++                config.getCleanupThreshold(),
++                config.getCleanupProbability()
++            );
++        }
++
++        @Override
++        public int getCardUsageCount(Payment payment, Duration duration) {
++            validatePayment(payment);
++            validateDuration(duration);
++            
++            return timestampStorage.countInWindow(
++                payment.getHashedCardNumber(),
++                payment.getTimestamp(),
++                duration
++            );
++        }
++
++        @Override
++        public void registerPayment(Payment payment) {
++            validatePayment(payment);
++            
++            timestampStorage.addTimestamp(
++                payment.getHashedCardNumber(),
++                payment.getTimestamp()
++            );
++            
++            // Trigger cleanup if strategy decides it's time
++            if (cleanupStrategy.shouldCleanup()) {
++                cleanupStrategy.cleanup(timestampStorage, payment.getTimestamp());
++            }
++        }
++        
++        /**
++         * Validates payment input to fail fast on invalid data.
++         */
++        private void validatePayment(Payment payment) {
++            if (payment == null) {
++                throw new IllegalArgumentException("Payment cannot be null");
++            }
++            if (payment.getHashedCardNumber() == null || payment.getHashedCardNumber().isEmpty()) {
++                throw new IllegalArgumentException("Card number hash cannot be null or empty");
++            }
++            if (payment.getTimestamp() == null) {
++                throw new IllegalArgumentException("Payment timestamp cannot be null");
++            }
++        }
++        
++        /**
++         * Validates duration to ensure valid time windows.
++         */
++        private void validateDuration(Duration duration) {
++            if (duration == null || duration.isNegative()) {
++                throw new IllegalArgumentException("Duration must be positive");
++            }
++        }
++    }
++    
++    /**
++     * Configuration class for VelocityProvider.
++     * Centralizes all tunable parameters for easy maintenance and testing.
++     */
++    static class VelocityProviderConfig {
++        private final Duration cleanupThreshold;
++        private final double cleanupProbability;
++        
++        private VelocityProviderConfig(Builder builder) {
++            this.cleanupThreshold = builder.cleanupThreshold;
++            this.cleanupProbability = builder.cleanupProbability;
++        }
++        
++        public static VelocityProviderConfig defaultConfig() {
++            return new Builder().build();
++        }
++        
++        public Duration getCleanupThreshold() {
++            return cleanupThreshold;
++        }
++        
++        public double getCleanupProbability() {
++            return cleanupProbability;
++        }
++        
++        /**
++         * Builder pattern for flexible configuration.
++         */
++        public static class Builder {
++            // Conservative default: keep 7 days of data
++            // This ensures cleanup won't interfere with reasonable query durations
++            private Duration cleanupThreshold = Duration.ofDays(7);
++            private double cleanupProbability = 0.001; // 0.1% chance per registration
++            
++            public Builder cleanupThreshold(Duration threshold) {
++                this.cleanupThreshold = threshold;
++                return this;
++            }
++            
++            public Builder cleanupProbability(double probability) {
++                if (probability < 0 || probability > 1) {
++                    throw new IllegalArgumentException("Probability must be between 0 and 1");
++                }
++                this.cleanupProbability = probability;
++                return this;
++            }
++            
++            public VelocityProviderConfig build() {
++                return new VelocityProviderConfig(this);
++            }
++        }
++    }
++    
++    /**
++     * Interface for timestamp storage strategies.
++     * Allows different implementations for different use cases (in-memory, distributed, etc.)
++     */
++    interface TimestampStorage {
++        /**
++         * Adds a timestamp for a specific card.
++         */
++        void addTimestamp(String cardHash, Instant timestamp);
++        
++        /**
++         * Counts timestamps within a time window for a card.
++         */
++        int countInWindow(String cardHash, Instant queryTime, Duration duration);
++        
++        /**
++         * Removes all timestamps older than the cutoff time.
++         */
++        void removeOlderThan(Instant cutoffTime);
++        
++        /**
++         * Gets the oldest timestamp across all cards.
++         */
++        Instant getOldestTimestamp();
++    }
++    
++    /**
++     * TreeMap-based implementation of TimestampStorage.
++     * Uses TreeMap<Long, Integer> to track counts per timestamp, properly handling duplicates.
++     * Optimized for time-range queries with O(log n) complexity.
++     * 
++     * SCALABILITY NOTES:
++     * - Per-request cost: O(log n + k) where n = timestamps per card, k = results in window
++     * - Memory bounded by cleanup threshold (default 7 days)
++     * - Thread-safe: ConcurrentHashMap + per-card TreeMap synchronization
++     * 
++     * SHARDING STRATEGY:
++     * - Current: Keyed by hashedCardNumber for natural distribution
++     * - Easy to shard: Hash(cardNumber) % numShards → shard assignment
++     * - For merchant-specific: Use composite key (merchantId + cardHash)
++     * - Horizontal scaling: Replace with Redis/Cassandra via TimestampStorage interface
++     * 
++     * CLEANUP THRESHOLD vs QUERY DURATION:
++     * - cleanupThreshold MUST be >= max expected query duration
++     * - Default 7 days ensures most reasonable velocity rules work
++     * - If querying "card seen in last 30 days", set threshold >= 30 days
++     * - Too aggressive cleanup = lost data = incorrect counts
++     */
++    static class TreeMapTimestampStorage implements TimestampStorage {
++        // Thread-safe map of card hash to timestamp counts
++        // TreeMap<epochMilli, count> allows duplicate timestamps with proper counting
++        private final Map<String, TreeMap<Long, Integer>> cardTimestamps;
++        private volatile Long oldestTimestampMillis;
++        
++        public TreeMapTimestampStorage() {
++            this.cardTimestamps = new java.util.concurrent.ConcurrentHashMap<>();
++            this.oldestTimestampMillis = System.currentTimeMillis();
++        }
++        
++        @Override
++        public void addTimestamp(String cardHash, Instant timestamp) {
++            TreeMap<Long, Integer> timestamps = cardTimestamps.computeIfAbsent(
++                cardHash,
++                k -> new TreeMap<>()
++            );
++            
++            long epochMilli = timestamp.toEpochMilli();
++            
++            // Synchronize on the same timestamps object as countInWindow
++            synchronized (timestamps) {
++                // Increment count for this timestamp (handles duplicates)
++                timestamps.merge(epochMilli, 1, Integer::sum);
++            }
++            
++            // Update oldest timestamp tracking (atomic operation on volatile field)
++            if (epochMilli < oldestTimestampMillis) {
++                oldestTimestampMillis = epochMilli;
++            }
++        }
++        
++        @Override
++        public int countInWindow(String cardHash, Instant queryTime, Duration duration) {
++            TreeMap<Long, Integer> timestamps = cardTimestamps.get(cardHash);
++            
++            if (timestamps == null || timestamps.isEmpty()) {
++                return 0;
++            }
++            
++            long windowStartMillis = queryTime.minus(duration).toEpochMilli();
++            long queryTimeMillis = queryTime.toEpochMilli();
++            
++            // Use TreeMap's subMap for efficient range query: O(log n + k)
++            // where k is the number of unique timestamps in the result
++            // Sum all counts within the time window
++            synchronized (timestamps) {
++                return timestamps.subMap(windowStartMillis, true, queryTimeMillis, true)
++                    .values()
++                    .stream()
++                    .mapToInt(Integer::intValue)
++                    .sum();
++            }
++        }
++        
++        @Override
++        public synchronized void removeOlderThan(Instant cutoffTime) {
++            long cutoffMillis = cutoffTime.toEpochMilli();
++            
++            if (oldestTimestampMillis > cutoffMillis) {
++                return; // No data old enough to clean
++            }
++            
++            Long newOldest = System.currentTimeMillis();
++            
++            // Clean old timestamps from each card's TreeMap
++            for (TreeMap<Long, Integer> timestamps : cardTimestamps.values()) {
++                synchronized (timestamps) {
++                    // Remove old timestamps (headMap returns entries < cutoff)
++                    timestamps.headMap(cutoffMillis, false).clear();
++                    
++                    // Track new oldest timestamp if card has remaining data
++                    if (!timestamps.isEmpty()) {
++                        Long first = timestamps.firstKey();
++                        if (first < newOldest) {
++                            newOldest = first;
++                        }
++                    }
++                }
++            }
++            
++            // Remove empty card entries using removeIf (ConcurrentHashMap supports this)
++            cardTimestamps.entrySet().removeIf(entry -> entry.getValue().isEmpty());
++            
++            oldestTimestampMillis = newOldest;
++        }
++        
++        @Override
++        public Instant getOldestTimestamp() {
++            return Instant.ofEpochMilli(oldestTimestampMillis);
++        }
++    }
++    
++    /**
++     * Interface for cleanup strategies.
++     * Allows different approaches to memory management.
++     */
++    interface CleanupStrategy {
++        /**
++         * Determines if cleanup should occur.
++         */
++        boolean shouldCleanup();
++        
++        /**
++         * Performs cleanup on the storage.
++         */
++        void cleanup(TimestampStorage storage, Instant currentTime);
++    }
++    
++    /**
++     * Probabilistic cleanup strategy to distribute cleanup overhead.
++     * Prevents cleanup from blocking a single payment operation.
++     * 
++     * Note: For testing, use DeterministicCleanupStrategy or inject a seeded Random
++     * via the constructor that accepts a Random instance.
++     */
++    static class ProbabilisticCleanupStrategy implements CleanupStrategy {
++        private final Duration cleanupThreshold;
++        private final double cleanupProbability;
++        private final Random random;
++        
++        /**
++         * Constructor with default Random (non-deterministic).
++         */
++        public ProbabilisticCleanupStrategy(Duration threshold, double probability) {
++            this(threshold, probability, new Random());
++        }
++        
++        /**
++         * Constructor with injectable Random for deterministic testing.
++         * @param threshold Duration after which data should be cleaned
++         * @param probability Probability of cleanup per registration (0.0 to 1.0)
++         * @param random Random instance (can be seeded for tests)
++         */
++        public ProbabilisticCleanupStrategy(Duration threshold, double probability, Random random) {
++            this.cleanupThreshold = threshold;
++            this.cleanupProbability = probability;
++            this.random = random;
++        }
++        
++        @Override
++        public boolean shouldCleanup() {
++            return random.nextDouble() < cleanupProbability;
++        }
++        
++        @Override
++        public void cleanup(TimestampStorage storage, Instant currentTime) {
++            Instant cutoffTime = currentTime.minus(cleanupThreshold);
++            storage.removeOlderThan(cutoffTime);
++        }
++    }
++    
++    /**
++     * Deterministic cleanup strategy for testing.
++     * Cleans up every N registrations for predictable behavior in tests.
++     */
++    static class DeterministicCleanupStrategy implements CleanupStrategy {
++        private final Duration cleanupThreshold;
++        private final int cleanupInterval;
++        private int registrationCount;
++        
++        /**
++         * @param threshold Duration after which data should be cleaned
++         * @param cleanupInterval Clean up every N registrations
++         */
++        public DeterministicCleanupStrategy(Duration threshold, int cleanupInterval) {
++            this.cleanupThreshold = threshold;
++            this.cleanupInterval = cleanupInterval;
++            this.registrationCount = 0;
++        }
++        
++        @Override
++        public synchronized boolean shouldCleanup() {
++            registrationCount++;
++            return registrationCount % cleanupInterval == 0;
++        }
++        
++        @Override
++        public void cleanup(TimestampStorage storage, Instant currentTime) {
++            Instant cutoffTime = currentTime.minus(cleanupThreshold);
++            storage.removeOlderThan(cutoffTime);
++        }
++    }
++
++    public static void main(String args[]) throws Exception {
++        final VelocityProvider velocityProvider = VelocityProvider.getProvider();
++
++        try (final Scanner scanner = new Scanner(System.in)) {
++            while (scanner.hasNextLine()) {
++                final String assoc = scanner.next();
++                final String[] split = assoc.split(":");
++
++                final String operation = split[0];
++
++                if (split.length == 3 && "register".equals(operation)) {
++                    final long timestamp = Long.parseLong(split[1]);
++                    final String hashedCardNumber = split[2];
++                    final Payment payment = new Payment(UUID.randomUUID().toString(), Instant.ofEpochMilli(timestamp), hashedCardNumber);
++
++                    velocityProvider.registerPayment(payment);
++                } else if (split.length == 4 &&  "get".equals(operation)) {
++                    final long queryTime = Long.parseLong(split[1]);
++                    final String hashedCardNumber = split[2];
++                    final long durationInSeconds = Long.parseLong(split[3]);
++                    System.out.println(velocityProvider.getCardUsageCount(new Payment(UUID.randomUUID().toString(), Instant.ofEpochMilli(queryTime), hashedCardNumber), Duration.ofSeconds(durationInSeconds)));
++                } else {
++                    throw new RuntimeException("Invalid test input");
++                }
++            }
++        }
++    }
++}
+diff --git a/java/practice-problems/src/test/java/banking/AccountTest.java b/java/practice-problems/src/test/java/banking/AccountTest.java
+new file mode 100644
+index 0000000..a5dc81e
+--- /dev/null
++++ b/java/practice-problems/src/test/java/banking/AccountTest.java
+@@ -0,0 +1,37 @@
++package banking;
++
++import org.junit.jupiter.api.Test;
++
++import static org.junit.jupiter.api.Assertions.*;
++
++public class AccountTest {
++
++    @Test
++    public void testValidatePinAndBalanceOperations() {
++        Person owner = new Person("Katherine", "Johnson", 505);
++        Account account = new ConsumerAccount(owner, 1L, 4321, 25.0);
++
++        assertTrue(account.validatePin(4321));
++        assertFalse(account.validatePin(1111));
++
++        account.creditAccount(10.0);
++        assertEquals(35.0, account.getBalance(), 0.0001);
++
++        assertTrue(account.debitAccount(5.0));
++        assertEquals(30.0, account.getBalance(), 0.0001);
++
++        assertFalse(account.debitAccount(100.0));
++        assertEquals(30.0, account.getBalance(), 0.0001);
++
++        account.creditAccount(-10.0);
++        assertEquals(30.0, account.getBalance(), 0.0001);
++    }
++
++    @Test
++    public void testGetAccountHolder() {
++        Person owner = new Person("Mary", "Jackson", 606);
++        Account account = new ConsumerAccount(owner, 2L, 5555, 0.0);
++
++        assertSame(owner, account.getAccountHolder());
++    }
++}
+diff --git a/java/practice-problems/src/test/java/banking/BankTest.java b/java/practice-problems/src/test/java/banking/BankTest.java
+new file mode 100644
+index 0000000..9ec9cc8
+--- /dev/null
++++ b/java/practice-problems/src/test/java/banking/BankTest.java
+@@ -0,0 +1,60 @@
++package banking;
++
++import org.junit.jupiter.api.Test;
++
++import static org.junit.jupiter.api.Assertions.*;
++
++public class BankTest {
++
++    @Test
++    public void testOpenAccountsAndAuthenticate() {
++        Bank bank = new Bank();
++
++        Long consumerAccount = bank.openConsumerAccount(new Person("Ada", "Lovelace", 101), 1234, 50.0);
++        Long commercialAccount = bank.openCommercialAccount(new Company("Acme", 202), 9999, 500.0);
++
++        assertNotNull(consumerAccount);
++        assertNotNull(commercialAccount);
++        assertNotEquals(consumerAccount, commercialAccount);
++
++        assertTrue(bank.authenticateUser(consumerAccount, 1234));
++        assertFalse(bank.authenticateUser(consumerAccount, 1111));
++        assertTrue(bank.authenticateUser(commercialAccount, 9999));
++    }
++
++    @Test
++    public void testGetBalanceCreditDebit() {
++        Bank bank = new Bank();
++        Long accountNumber = bank.openConsumerAccount(new Person("Grace", "Hopper", 303), 2468, 100.0);
++
++        assertEquals(100.0, bank.getBalance(accountNumber), 0.0001);
++
++        bank.credit(accountNumber, 50.0);
++        assertEquals(150.0, bank.getBalance(accountNumber), 0.0001);
++
++        boolean debited = bank.debit(accountNumber, 70.0);
++        assertTrue(debited);
++        assertEquals(80.0, bank.getBalance(accountNumber), 0.0001);
++    }
++
++    @Test
++    public void testDebitInsufficientFunds() {
++        Bank bank = new Bank();
++        Long accountNumber = bank.openConsumerAccount(new Person("Alan", "Turing", 404), 1357, 10.0);
++
++        boolean debited = bank.debit(accountNumber, 50.0);
++        assertFalse(debited);
++        assertEquals(10.0, bank.getBalance(accountNumber), 0.0001);
++    }
++
++    @Test
++    public void testMissingAccountBehavior() {
++        Bank bank = new Bank();
++        Long missing = 999999999L;
++
++        assertFalse(bank.authenticateUser(missing, 1234));
++        assertEquals(-1.0, bank.getBalance(missing), 0.0001);
++        assertFalse(bank.debit(missing, 10.0));
++        bank.credit(missing, 10.0); // should be no-op
++    }
++}
+diff --git a/java/practice-problems/src/test/java/banking/CommercialAccountTest.java b/java/practice-problems/src/test/java/banking/CommercialAccountTest.java
+new file mode 100644
+index 0000000..5ca12ad
+--- /dev/null
++++ b/java/practice-problems/src/test/java/banking/CommercialAccountTest.java
+@@ -0,0 +1,27 @@
++package banking;
++
++import org.junit.jupiter.api.Test;
++
++import static org.junit.jupiter.api.Assertions.*;
++
++public class CommercialAccountTest {
++
++    @Test
++    public void testAuthorizedUsers() {
++        Company company = new Company("Globex", 707);
++        CommercialAccount account = new CommercialAccount(company, 3L, 7777, 1000.0);
++
++        Person user = new Person("Elon", "Musk", 808);
++
++        assertFalse(account.isAuthorizedUser(user));
++        account.addAuthorizedUser(user);
++        assertTrue(account.isAuthorizedUser(user));
++
++        // adding same user again should not break behavior
++        account.addAuthorizedUser(user);
++        assertTrue(account.isAuthorizedUser(user));
++
++        // null should not be authorized
++        assertFalse(account.isAuthorizedUser(null));
++    }
++}
+diff --git a/java/practice-problems/src/test/java/banking/PersonCompanyTest.java b/java/practice-problems/src/test/java/banking/PersonCompanyTest.java
+new file mode 100644
+index 0000000..268ea6d
+--- /dev/null
++++ b/java/practice-problems/src/test/java/banking/PersonCompanyTest.java
+@@ -0,0 +1,23 @@
++package banking;
++
++import org.junit.jupiter.api.Test;
++
++import static org.junit.jupiter.api.Assertions.*;
++
++public class PersonCompanyTest {
++
++    @Test
++    public void testPersonFields() {
++        Person person = new Person("John", "Doe", 111);
++        assertEquals("John", person.getFirstName());
++        assertEquals("Doe", person.getLastName());
++        assertEquals(111, person.getIdNumber());
++    }
++
++    @Test
++    public void testCompanyFields() {
++        Company company = new Company("Initech", 222);
++        assertEquals("Initech", company.getCompanyName());
++        assertEquals(222, company.getIdNumber());
++    }
++}
+diff --git a/java/practice-problems/src/test/java/banking/TransactionTest.java b/java/practice-problems/src/test/java/banking/TransactionTest.java
+new file mode 100644
+index 0000000..e1cc009
+--- /dev/null
++++ b/java/practice-problems/src/test/java/banking/TransactionTest.java
+@@ -0,0 +1,31 @@
++package banking;
++
++import org.junit.jupiter.api.Test;
++
++import static org.junit.jupiter.api.Assertions.*;
++
++public class TransactionTest {
++
++    @Test
++    public void testTransactionWithValidPin() throws Exception {
++        Bank bank = new Bank();
++        Long accountNumber = bank.openConsumerAccount(new Person("Ada", "Byron", 909), 2468, 200.0);
++
++        Transaction txn = new Transaction(bank, accountNumber, 2468);
++        assertEquals(200.0, txn.getBalance(), 0.0001);
++
++        txn.credit(50.0);
++        assertEquals(250.0, txn.getBalance(), 0.0001);
++
++        assertTrue(txn.debit(100.0));
++        assertEquals(150.0, txn.getBalance(), 0.0001);
++    }
++
++    @Test
++    public void testTransactionWithInvalidPin() {
++        Bank bank = new Bank();
++        Long accountNumber = bank.openConsumerAccount(new Person("Ada", "Byron", 910), 2468, 200.0);
++
++        assertThrows(Exception.class, () -> new Transaction(bank, accountNumber, 1111));
++    }
++}
+diff --git a/java/practice-problems/src/test/java/practice/HelloWorldTest.java b/java/practice-problems/src/test/java/practice/HelloWorldTest.java
+new file mode 100644
+index 0000000..294a628
+--- /dev/null
++++ b/java/practice-problems/src/test/java/practice/HelloWorldTest.java
+@@ -0,0 +1,16 @@
++package practice;
++
++public class HelloWorldTest {
++    public static void main(String[] args) {
++        String expected = "Hello, world!";
++        String actual = getHello();
++        if (!expected.equals(actual)) {
++            throw new AssertionError("Expected: " + expected + ", got: " + actual);
++        }
++        System.out.println("HelloWorldTest passed");
++    }
++
++    private static String getHello() {
++        return "Hello, world!";
++    }
++}
+diff --git a/java/practice-problems/src/test/java/practice/VelocityProviderTest.java b/java/practice-problems/src/test/java/practice/VelocityProviderTest.java
+new file mode 100644
+index 0000000..50f133a
+--- /dev/null
++++ b/java/practice-problems/src/test/java/practice/VelocityProviderTest.java
+@@ -0,0 +1,186 @@
++package practice;
++
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.BeforeEach;
++import static org.junit.jupiter.api.Assertions.*;
++
++import java.time.Duration;
++import java.time.Instant;
++import java.util.UUID;
++
++public class VelocityProviderTest {
++    
++    private Solution.VelocityProvider provider;
++    
++    @BeforeEach
++    public void setUp() {
++        provider = Solution.VelocityProvider.getProvider();
++    }
++    
++    @Test
++    public void testNoPaymentsRegistered() {
++        Solution.Payment payment = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            Instant.now(),
++            "card123"
++        );
++        
++        int count = provider.getCardUsageCount(payment, Duration.ofMinutes(10));
++        assertEquals(0, count, "Should return 0 when no payments registered");
++    }
++    
++    @Test
++    public void testSinglePaymentWithinWindow() {
++        Instant now = Instant.now();
++        String cardHash = "card123";
++        
++        // Register a payment
++        Solution.Payment payment1 = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            now,
++            cardHash
++        );
++        provider.registerPayment(payment1);
++        
++        // Query 5 minutes later with 10 minute window
++        Solution.Payment queryPayment = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            now.plus(Duration.ofMinutes(5)),
++            cardHash
++        );
++        
++        int count = provider.getCardUsageCount(queryPayment, Duration.ofMinutes(10));
++        assertEquals(1, count, "Should find 1 payment within 10 minute window");
++    }
++    
++    @Test
++    public void testMultiplePaymentsWithinWindow() {
++        Instant baseTime = Instant.now();
++        String cardHash = "card456";
++        
++        // Register 5 payments over 8 minutes
++        for (int i = 0; i < 5; i++) {
++            Solution.Payment payment = new Solution.Payment(
++                UUID.randomUUID().toString(),
++                baseTime.plus(Duration.ofMinutes(i * 2)),
++                cardHash
++            );
++            provider.registerPayment(payment);
++        }
++        
++        // Query at 10 minutes with 10 minute window - should see all 5
++        Solution.Payment queryPayment = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            baseTime.plus(Duration.ofMinutes(10)),
++            cardHash
++        );
++        
++        int count = provider.getCardUsageCount(queryPayment, Duration.ofMinutes(10));
++        assertEquals(5, count, "Should find all 5 payments within 10 minute window");
++    }
++    
++    @Test
++    public void testPaymentsOutsideWindow() {
++        Instant baseTime = Instant.now();
++        String cardHash = "card789";
++        
++        // Register payment at time 0
++        Solution.Payment payment1 = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            baseTime,
++            cardHash
++        );
++        provider.registerPayment(payment1);
++        
++        // Query 15 minutes later with 10 minute window - should not see old payment
++        Solution.Payment queryPayment = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            baseTime.plus(Duration.ofMinutes(15)),
++            cardHash
++        );
++        
++        int count = provider.getCardUsageCount(queryPayment, Duration.ofMinutes(10));
++        assertEquals(0, count, "Should not find payments outside window");
++    }
++    
++    @Test
++    public void testMixedPaymentsInsideAndOutsideWindow() {
++        Instant baseTime = Instant.now();
++        String cardHash = "cardABC";
++        
++        // Register payments at 0, 5, 15, 20 minutes
++        int[] minuteOffsets = {0, 5, 15, 20};
++        for (int offset : minuteOffsets) {
++            Solution.Payment payment = new Solution.Payment(
++                UUID.randomUUID().toString(),
++                baseTime.plus(Duration.ofMinutes(offset)),
++                cardHash
++            );
++            provider.registerPayment(payment);
++        }
++        
++        // Query at 18 minutes with 10 minute window - should see payments at 15 only
++        Solution.Payment queryPayment = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            baseTime.plus(Duration.ofMinutes(18)),
++            cardHash
++        );
++        
++        int count = provider.getCardUsageCount(queryPayment, Duration.ofMinutes(10));
++        assertEquals(1, count, "Should find only 1 payment within window");
++    }
++    
++    @Test
++    public void testDifferentCards() {
++        Instant now = Instant.now();
++        
++        // Register payments for different cards
++        Solution.Payment payment1 = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            now,
++            "card001"
++        );
++        provider.registerPayment(payment1);
++        
++        Solution.Payment payment2 = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            now,
++            "card002"
++        );
++        provider.registerPayment(payment2);
++        
++        // Query for card001 - should only see its own payment
++        Solution.Payment queryPayment = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            now.plus(Duration.ofMinutes(1)),
++            "card001"
++        );
++        
++        int count = provider.getCardUsageCount(queryPayment, Duration.ofMinutes(10));
++        assertEquals(1, count, "Should only count payments for the specific card");
++    }
++    
++    @Test
++    public void testEdgeCaseExactWindowBoundary() {
++        Instant baseTime = Instant.now();
++        String cardHash = "cardEdge";
++        
++        // Register payment at time 0
++        Solution.Payment payment1 = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            baseTime,
++            cardHash
++        );
++        provider.registerPayment(payment1);
++        
++        // Query exactly 10 minutes later with 10 minute window
++        Solution.Payment queryPayment = new Solution.Payment(
++            UUID.randomUUID().toString(),
++            baseTime.plus(Duration.ofMinutes(10)),
++            cardHash
++        );
++        
++        int count = provider.getCardUsageCount(queryPayment, Duration.ofMinutes(10));
++        assertEquals(1, count, "Payment at exact window boundary should be included");
++    }
++}
