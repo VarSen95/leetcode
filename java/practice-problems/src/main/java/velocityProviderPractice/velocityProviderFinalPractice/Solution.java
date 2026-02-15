@@ -454,10 +454,16 @@ public class Solution {
     // and control hot-key behavior.
     static class DequeBasedTimestampStorage implements TimestampStorage {
         private final Map<String, Deque<Long>> cardTimestamps;
+        private final Map<String, java.util.concurrent.locks.ReadWriteLock> locks;
         private AtomicLong oldestTimestampMillis = new AtomicLong(Long.MAX_VALUE);
 
         public DequeBasedTimestampStorage() {
             this.cardTimestamps = new java.util.concurrent.ConcurrentHashMap<>();
+            this.locks = new java.util.concurrent.ConcurrentHashMap<>();
+        }
+
+        private java.util.concurrent.locks.ReadWriteLock lockFor(String cardHash) {
+            return locks.computeIfAbsent(cardHash, k -> new java.util.concurrent.locks.ReentrantReadWriteLock());
         }
 
         @Override
@@ -467,10 +473,12 @@ public class Solution {
                     k -> new ArrayDeque<>());
 
             long epochMilli = timestamp.toEpochMilli();
-
-            synchronized (timestamps) {
+            java.util.concurrent.locks.ReadWriteLock lock = lockFor(cardHash);
+            lock.writeLock().lock();
+            try {
                 timestamps.addLast(epochMilli);
-
+            } finally {
+                lock.writeLock().unlock();
             }
 
             this.oldestTimestampMillis.accumulateAndGet(epochMilli, Long::min);
@@ -486,17 +494,19 @@ public class Solution {
             }
 
             long windowStartMillis = queryTime.minus(duration).toEpochMilli();
-            long queryTimeMillis = queryTime.toEpochMilli();
-            // With a deque sliding window, insert is O(1). Counting is amortized O(1)
-            // because each timestamp is added once and removed once. We avoid the O(log n +
-            // k) range scan entirely, which makes it ideal for high write workloads with
-            // real-time sliding window queries.
-            synchronized (timestamps) {
-                while (!timestamps.isEmpty() && timestamps.peekFirst() < windowStartMillis) {
-                    timestamps.pollFirst();
-                }
 
-                return timestamps.size();
+            java.util.concurrent.locks.ReadWriteLock lock = lockFor(cardHash);
+            lock.readLock().lock();
+            try {
+                int size = 0;
+                for (Long ts : timestamps) {
+                    if (ts >= windowStartMillis) {
+                        size++;
+                    }
+                }
+                return size;
+            } finally {
+                lock.readLock().unlock();
             }
 
         }
@@ -505,29 +515,33 @@ public class Solution {
         public void removeOlderThan(Instant cutoffTime) {
             long cutoffMillis = cutoffTime.toEpochMilli();
 
-            // If late-arriving events are possible, I would introduce an allowed lateness
-            // buffer — meaning I retain data slightly longer than the business retention
-            // window to ensure delayed events can still be processed correctly
-
             if (oldestTimestampMillis.get() > cutoffMillis) {
                 return; // No data old enough to clean
             }
 
             Long newOldest = Long.MAX_VALUE;
 
-            // Clean old timestamps from each card's TreeMap
-            for (Deque<Long> timestamps : cardTimestamps.values()) {
-                synchronized (timestamps) {
-                    // Remove old timestamps (headMap returns entries < cutoff)
-
+            for (Map.Entry<String, Deque<Long>> entry : cardTimestamps.entrySet()) {
+                String card = entry.getKey();
+                Deque<Long> timestamps = entry.getValue();
+                java.util.concurrent.locks.ReadWriteLock lock = lockFor(card);
+                lock.writeLock().lock();
+                try {
                     while (!timestamps.isEmpty() && timestamps.peekFirst() < cutoffMillis) {
                         timestamps.pollFirst();
                     }
 
+                    if (!timestamps.isEmpty()) {
+                        Long first = timestamps.peekFirst();
+                        if (first < newOldest) {
+                            newOldest = first;
+                        }
+                    }
+                } finally {
+                    lock.writeLock().unlock();
                 }
             }
 
-            // Remove empty card entries using removeIf (ConcurrentHashMap supports this)
             cardTimestamps.entrySet().removeIf(entry -> entry.getValue().isEmpty());
 
             oldestTimestampMillis.set(newOldest);

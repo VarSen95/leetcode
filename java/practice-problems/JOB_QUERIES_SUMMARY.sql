@@ -65,14 +65,12 @@ INNER JOIN (
     ON je.job_name = latest_exec.job_name 
     AND je.execution_id = latest_exec.max_execution_id
 INNER JOIN (
-    SELECT DISTINCT ON (execution_id)
-        execution_id,
-        status
-    FROM 
-        job_status_history
-    ORDER BY 
-        execution_id,
-        timestamp DESC
+    SELECT execution_id, status FROM (
+        SELECT execution_id, status,
+               ROW_NUMBER() OVER (PARTITION BY execution_id ORDER BY timestamp DESC) AS rn
+        FROM job_status_history
+    ) ranked
+    WHERE rn = 1
 ) jsh ON je.execution_id = jsh.execution_id
 ORDER BY 
     je.job_name;
