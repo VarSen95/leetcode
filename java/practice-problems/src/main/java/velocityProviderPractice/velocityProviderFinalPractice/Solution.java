@@ -1,5 +1,6 @@
 package velocityProviderPractice.velocityProviderFinalPractice;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.time.*;
 
@@ -161,7 +162,7 @@ public class Solution {
 
             // Trigger cleanup if strategy decides it's time
             if (cleanupStrategy.shouldCleanup()) {
-                cleanupStrategy.cleanup(timestampStorage, payment.getTimestamp());
+                CompletableFuture.runAsync(() -> cleanupStrategy.cleanup(timestampStorage, payment.getTimestamp()));
             }
         }
 
@@ -184,6 +185,9 @@ public class Solution {
          * Validates duration to ensure valid time windows.
          */
         private void validateDuration(Duration duration) {
+            if (duration.compareTo(config.getCleanupThreshold()) > 0){
+                throw new IllegalArgumentException("Duration must be less than or equal to cleanup threshold");
+            }
             if (duration == null || duration.isNegative() || duration.isZero()) {
                 throw new IllegalArgumentException("Duration must be positive");
             }
@@ -301,6 +305,8 @@ public class Solution {
         private final Map<String, TreeMap<Long, Integer>> cardTimestamps;
         private AtomicLong oldestTimestampMillis = new AtomicLong(Long.MAX_VALUE);
 
+        ReadwriteLock
+
         public TreeMapTimestampStorage() {
             this.cardTimestamps = new java.util.concurrent.ConcurrentHashMap<>();
         }
@@ -382,7 +388,7 @@ public class Solution {
         }
 
         @Override
-        public synchronized void removeOlderThan(Instant cutoffTime) {
+        public void removeOlderThan(Instant cutoffTime) {
             long cutoffMillis = cutoffTime.toEpochMilli();
 
             // If late-arriving events are possible, I would introduce an allowed lateness
@@ -496,7 +502,7 @@ public class Solution {
         }
 
         @Override
-        public synchronized void removeOlderThan(Instant cutoffTime) {
+        public void removeOlderThan(Instant cutoffTime) {
             long cutoffMillis = cutoffTime.toEpochMilli();
 
             // If late-arriving events are possible, I would introduce an allowed lateness

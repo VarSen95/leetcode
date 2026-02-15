@@ -7,7 +7,8 @@ public class AuditingBank implements BankInterface {
     private final TransactionHistoryLogger historyLogger;
     private final RequestIdLogger requestIdLogger;
 
-    public AuditingBank(BankInterface wrapped, TransactionHistoryLogger historyLogger, RequestIdLogger requestIdLogger) {
+    public AuditingBank(BankInterface wrapped, TransactionHistoryLogger historyLogger,
+            RequestIdLogger requestIdLogger) {
         this.wrapped = wrapped;
         this.historyLogger = historyLogger;
         this.requestIdLogger = requestIdLogger;
@@ -46,9 +47,9 @@ public class AuditingBank implements BankInterface {
         RequestContext.setRequestId(reqId);
         try {
             requestIdLogger.log(reqId);
-        wrapped.credit(accountNumber, amount);
-        boolean success = amount > 0 && wrapped.getAccount(accountNumber) != null;
-        historyLogger.log(new TransactionRecord(accountNumber, amount, TransactionType.CREDIT, success));
+            wrapped.credit(accountNumber, amount);
+            boolean success = amount > 0 && wrapped.getAccount(accountNumber) != null;
+            historyLogger.log(new TransactionRecord(accountNumber, amount, TransactionType.CREDIT, success));
         } finally {
             RequestContext.clear();
         }

@@ -15,6 +15,7 @@ public class CommercialAccount extends Account {
 
     public CommercialAccount(Company company, Long accountNumber, int pin, double startingDeposit, Currency currency) {
         super(company, accountNumber, pin, startingDeposit, currency);
+        // use CopyOnWriteArraylist:: gread for concurrent reads
         this.authorizedUsers = new ArrayList<>();
     }
 

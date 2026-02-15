@@ -49,10 +49,21 @@ public class InMemoryTransactionService implements TransactionService {
             return false;
         }
 
-        accountDao.save(new AccountDTO(sourceAccount, source.getHolderName(), source.getPin(),
-                source.getBalance() - amount));
-        accountDao.save(new AccountDTO(destinationAccount, dest.getHolderName(), dest.getPin(),
-                dest.getBalance() + amount));
-        return true;
+        // Save originals for rollback in case second write fails
+        AccountDTO originalSource = source;
+        AccountDTO originalDest = dest;
+
+        try {
+            accountDao.save(new AccountDTO(sourceAccount, source.getHolderName(), source.getPin(),
+                    source.getBalance() - amount));
+            accountDao.save(new AccountDTO(destinationAccount, dest.getHolderName(), dest.getPin(),
+                    dest.getBalance() + amount));
+            return true;
+        } catch (RuntimeException e) {
+            // Roll back to original state to maintain atomicity in-memory
+            accountDao.save(originalSource);
+            accountDao.save(originalDest);
+            return false;
+        }
     }
 }
